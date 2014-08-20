@@ -25,6 +25,8 @@ func NewDockerManager(c *Config, list ServiceListProvider) (*DockerManager, erro
 }
 
 func (d *DockerManager) Start() error {
+	d.docker.StartMonitorEvents(d.eventCallback)
+
 	containers, err := d.docker.ListContainers(false)
 	if err != nil {
 		return errors.New("Error connecting to docker socket: " + err.Error())
@@ -40,6 +42,10 @@ func (d *DockerManager) Start() error {
 	}
 
 	return nil
+}
+
+func (d *DockerManager) Stop() {
+	d.docker.StopAllMonitorEvents()
 }
 
 func (d *DockerManager) getService(id string) (*Service, error) {
@@ -59,6 +65,24 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 	service.Ip = net.ParseIP(inspect.NetworkSettings.IpAddress)
 
 	return service, nil
+}
+
+func (d *DockerManager) eventCallback(event *dockerclient.Event, args ...interface{}) {
+	//log.Printf("Received event: %#v %#v\n", *event, args)
+
+	switch event.Status {
+	case "die", "stop", "kill":
+		// Errors can be ignored here because there can be no-op events.
+		d.list.RemoveService(event.Id)
+	case "start", "restart":
+		service, err := d.getService(event.Id)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		d.list.AddService(event.Id, *service)
+	}
 }
 
 func getImageName(tag string) string {

@@ -65,7 +65,7 @@ func (s *DNSServer) AddService(id string, service Service) {
 	s.services[id] = &service
 
 	if s.config.verbose {
-		log.Println("Added container:", id, service)
+		log.Println("Added service:", id, service)
 	}
 }
 
@@ -80,7 +80,7 @@ func (s *DNSServer) RemoveService(id string) error {
 	delete(s.services, id)
 
 	if s.config.verbose {
-		log.Println("Stopped container:", id)
+		log.Println("Stopped service:", id)
 	}
 
 	return nil
