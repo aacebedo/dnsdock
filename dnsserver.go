@@ -11,12 +11,12 @@ import (
 type Service struct {
 	Name  string
 	Image string
-	IP    net.IP
-	TTL   int
+	Ip    net.IP
+	Ttl   int
 }
 
 func NewService() (s *Service) {
-	s = &Service{TTL: -1}
+	s = &Service{Ttl: -1}
 	return
 }
 

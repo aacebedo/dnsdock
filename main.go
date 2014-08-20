@@ -14,6 +14,7 @@ func main() {
 
 	flag.StringVar(&config.nameserver, "nameserver", config.nameserver, "DNS server for unmatched requests")
 	flag.StringVar(&config.dnsAddr, "dns", config.dnsAddr, "Listen DNS requests on this address")
+	flag.StringVar(&config.httpAddr, "http", config.httpAddr, "Listen HTTP requests on this address")
 	domain := flag.String("domain", config.domain.String(), "Domain that is appended to all requests")
 	environment := flag.String("environment", "", "Optional context before domain suffix")
 	flag.StringVar(&config.dockerHost, "docker", config.dockerHost, "Path to the docker socket")
@@ -32,6 +33,14 @@ func main() {
 	fmt.Printf("%#v\n", config)
 
 	dnsServer := NewDNSServer(config)
+
+	httpServer := NewHTTPServer(config, dnsServer)
+	go func() {
+		if err := httpServer.Start(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	if err := dnsServer.Start(); err != nil {
 		log.Fatal(err)
 	}

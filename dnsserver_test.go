@@ -16,7 +16,7 @@ func TestDNSResponse(t *testing.T) {
 	go server.Start()
 
 	// Allow some time for server to start
-	time.Sleep(150 * time.Millisecond)
+	time.Sleep(250 * time.Millisecond)
 
 	m := new(dns.Msg)
 	m.Id = dns.Id()
