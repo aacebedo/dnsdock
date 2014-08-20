@@ -34,6 +34,14 @@ func main() {
 
 	dnsServer := NewDNSServer(config)
 
+	docker, err := NewDockerManager(config, dnsServer)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := docker.Start(); err != nil {
+		log.Fatal(err)
+	}
+
 	httpServer := NewHTTPServer(config, dnsServer)
 	go func() {
 		if err := httpServer.Start(); err != nil {
