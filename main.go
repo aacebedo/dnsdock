@@ -31,8 +31,6 @@ func main() {
 
 	config.domain = NewDomain(*environment + "." + *domain)
 
-	fmt.Printf("%#v\n", config)
-
 	dnsServer := NewDNSServer(config)
 
 	docker, err := NewDockerManager(config, dnsServer)
