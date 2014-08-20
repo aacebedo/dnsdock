@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/miekg/dns"
+	"log"
 )
 
 type DNSServer struct {
@@ -10,7 +11,7 @@ type DNSServer struct {
 }
 
 func NewDNSServer(c *Config) *DNSServer {
-	s := &DNSServer{}
+	s := &DNSServer{config: c}
 
 	mux := dns.NewServeMux()
 	mux.HandleFunc(".", s.forwardRequest)
@@ -29,7 +30,11 @@ func (s *DNSServer) Stop() {
 }
 
 func (s *DNSServer) forwardRequest(w dns.ResponseWriter, r *dns.Msg) {
-	m := new(dns.Msg)
-	m.SetReply(r)
-	w.WriteMsg(m)
+	c := new(dns.Client)
+	if in, _, err := c.Exchange(r, s.config.nameserver); err != nil {
+		log.Print(err)
+		w.WriteMsg(new(dns.Msg))
+	} else {
+		w.WriteMsg(in)
+	}
 }
