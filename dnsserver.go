@@ -142,7 +142,7 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		if service.Ttl != -1 {
 			ttl = service.Ttl
 		} else {
-			ttl = 0
+			ttl = s.config.ttl
 		}
 
 		rr.Hdr = dns.RR_Header{

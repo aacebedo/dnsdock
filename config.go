@@ -29,6 +29,7 @@ type Config struct {
 	dockerHost string
 	verbose    bool
 	httpAddr   string
+	ttl        int
 }
 
 func NewConfig() *Config {

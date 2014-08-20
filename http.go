@@ -26,6 +26,8 @@ func NewHTTPServer(c *Config, list ServiceListProvider) *HTTPServer {
 	router.HandleFunc("/services/{id}", s.updateService).Methods("PATCH")
 	router.HandleFunc("/services/{id}", s.removeService).Methods("DELETE")
 
+	router.HandleFunc("/set/ttl", s.setTTL).Methods("PUT")
+
 	s.server = &http.Server{Addr: c.httpAddr, Handler: router}
 
 	return s
@@ -155,5 +157,17 @@ func (s *HTTPServer) updateService(w http.ResponseWriter, req *http.Request) {
 	// todo: this probably needs to be moved. consider stop event in the
 	// middle of sending PATCH. container would not be removed.
 	s.list.AddService(id, service)
+
+}
+
+func (s *HTTPServer) setTTL(w http.ResponseWriter, req *http.Request) {
+	var value int
+	if err := json.NewDecoder(req.Body).Decode(&value); err != nil {
+		log.Println("Error decoding value: ", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	s.config.ttl = value
 
 }

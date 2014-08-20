@@ -66,4 +66,20 @@ func TestServiceRequests(t *testing.T) {
 			t.Error(input, "Expected:", input.expected, "Got:", actualStr)
 		}
 	}
+
+	t.Log("Test TTL setter")
+	if config.ttl != 0 {
+		t.Error("Default TTL is not 0")
+	}
+	req, err := http.NewRequest("PUT", "http://"+TEST_ADDR+"/set/ttl", strings.NewReader("12"))
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Error(err)
+	}
+	if config.ttl != 12 {
+		t.Error("TTL not updated. Expected: 12 Got:", config.ttl)
+	}
 }
