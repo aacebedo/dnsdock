@@ -1,3 +1,6 @@
+[![Build Status](https://secure.travis-ci.org/tonistiigi/dnsdock.png)](http://travis-ci.org/tonistiigi/dnsdock)
+
+
 ## dnsdock
 
 DNS server for automatic docker container discovery. Simplified version of [crosbymichael/skydock](https://github.com/crosbymichael/skydock).
