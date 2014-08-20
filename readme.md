@@ -112,6 +112,29 @@ curl http://dnsdock.docker/services/serviceid -X PATCH --data-ascii '{"ttl": 0}'
 curl http://dnsdock.docker/set/ttl -X PUT --data-ascii '10'
 ```
 
+
+#### OSX Usage
+
+Original tutorial: http://www.asbjornenge.com/wwc/vagrant_skydocking.html
+
+If you use docker on OSX via Vagrant you can do this to make your containers discoverable from your main machine.
+
+In your Vagrantfile add the following to let your virtual machine accept packets for other IPs:
+
+```ruby
+config.vm.provider :virtualbox do |vb|
+  vb.customize ["modifyvm", :id, "--nicpromisc2", "allow-all"]
+end
+```
+
+Then route traffic that matches you containers to your virtual machine internal IP:
+
+```
+sudo route -n add -net 172.17.0.0 <VAGRANT_MACHINE_IP>
+```
+
+Finally, to make OSX use dnsdock for requests that match your domain suffix create a file with your domain ending under `/etc/resolver` (for example `/etc/resolver/myprojectname.docker`) and set its contents to `nameserver 172.17.42.1`.
+
 ---
 
 #### Lots of code in this repo is directly influenced by skydns and skydock. Many thanks to the authors of these projects.
