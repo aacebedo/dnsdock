@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -25,5 +26,11 @@ func main() {
 		return
 	}
 
-	fmt.Printf("%#v\n", config)
+	// fmt.Printf("%#v\n", config)
+
+	dnsServer := NewDNSServer(config)
+	if err := dnsServer.Start(); err != nil {
+		log.Fatal(err)
+	}
+
 }
