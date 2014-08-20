@@ -44,3 +44,66 @@ func TestDNSResponse(t *testing.T) {
 		t.Error("Server still running but should be shut down.")
 	}
 }
+
+func TestServiceManagement(t *testing.T) {
+	list := ServiceListProvider(NewDNSServer(NewConfig()))
+
+	if len(list.GetAllServices()) != 0 {
+		t.Error("Initial service count should be 0.")
+	}
+
+	A := Service{Name: "bar"}
+	list.AddService("foo", A)
+
+	if len(list.GetAllServices()) != 1 {
+		t.Error("Service count should be 1.")
+	}
+
+	A.Name = "baz"
+
+	s1, err := list.GetService("foo")
+	if err != nil {
+		t.Error("GetService error", err)
+	}
+
+	if s1.Name != "bar" {
+		t.Error("Expected: bar got:", s1.Name)
+	}
+
+	_, err = list.GetService("boo")
+
+	if err == nil {
+		t.Error("Request to boo should have failed")
+	}
+
+	list.AddService("boo", Service{Name: "boo"})
+
+	all := list.GetAllServices()
+
+	delete(all, "foo")
+	s2 := all["boo"]
+	s2.Name = "zoo"
+
+	if len(list.GetAllServices()) != 2 {
+		t.Error("Local map change should not remove items")
+	}
+
+	if s1, _ = list.GetService("boo"); s1.Name != "boo" {
+		t.Error("Local map change should not change items")
+	}
+
+	err = list.RemoveService("bar")
+	if err == nil {
+		t.Error("Removing bar should fail")
+	}
+
+	err = list.RemoveService("foo")
+	if err != nil {
+		t.Error("Removing foo failed", err)
+	}
+
+	if len(list.GetAllServices()) != 1 {
+		t.Error("Item count after remove should be 1")
+	}
+
+}

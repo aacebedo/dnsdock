@@ -27,6 +27,7 @@ type Config struct {
 	dnsAddr    string
 	domain     Domain
 	dockerHost string
+	verbose    bool
 }
 
 func NewConfig() *Config {
