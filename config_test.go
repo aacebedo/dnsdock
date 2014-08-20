@@ -14,6 +14,7 @@ func TestDomainCreation(t *testing.T) {
 	}
 
 	for input, expected := range tests {
+		t.Log(input)
 		d := NewDomain(input)
 		if actual := d.String(); actual != expected {
 			t.Error(input, "Expected:", expected, "Got:", actual)
