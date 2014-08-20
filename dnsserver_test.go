@@ -6,9 +6,9 @@ import (
 	"time"
 )
 
-const TEST_ADDR = "127.0.0.1:9953"
-
 func TestDNSResponse(t *testing.T) {
+	const TEST_ADDR = "127.0.0.1:9953"
+
 	config := NewConfig()
 	config.dnsAddr = TEST_ADDR
 
@@ -107,4 +107,48 @@ func TestServiceManagement(t *testing.T) {
 		t.Error("Item count after remove should be 1")
 	}
 
+}
+
+func TestDNSRequestMatch(t *testing.T) {
+	server := NewDNSServer(NewConfig())
+
+	server.AddService("foo", Service{Name: "foo", Image: "bar"})
+	server.AddService("baz", Service{Name: "baz", Image: "bar"})
+	server.AddService("abc", Service{Name: "def", Image: "ghi"})
+
+	inputs := []struct {
+		query, domain string
+		expected      int
+	}{
+		{"docker", "docker", 3},
+		{"baz.docker", "docker.local", 0},
+		{"docker.local", "docker.local", 3},
+		{"foo.docker.local", "docker.local", 0},
+		{"bar.docker.local", "docker.local", 2},
+		{"foo.bar.docker.local", "docker.local", 1},
+		{"*.local", "docker.local", 3},
+		{"*.docker.local", "docker.local", 3},
+		{"bar.*.local", "docker.local", 2},
+		{"*.*.local", "docker.local", 3},
+		{"foo.*.local", "docker.local", 0},
+		{"bar.*.docker.local", "docker.local", 0},
+		{"foo.*.docker", "docker", 1},
+		{"baz.foo.bar.docker.local", "docker.local", 1},
+		{"foo.bar", "baz.foo.bar", 3},
+	}
+
+	for _, input := range inputs {
+		server.config.domain = NewDomain(input.domain)
+
+		t.Log(input.query, input.domain)
+
+		actual := 0
+		for _ = range server.queryServices(input.query) {
+			actual++
+		}
+
+		if actual != input.expected {
+			t.Error(input, "Expected:", input.expected, "Got:", actual)
+		}
+	}
 }

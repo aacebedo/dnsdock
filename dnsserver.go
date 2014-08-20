@@ -5,6 +5,7 @@ import (
 	"github.com/miekg/dns"
 	"log"
 	"net"
+	"strings"
 	"sync"
 )
 
@@ -126,18 +127,84 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		return
 	}
 
-	answer := new(dns.A)
-	answer.Hdr = dns.RR_Header{
-		Name:   r.Question[0].Name,
-		Rrtype: dns.TypeA,
-		Class:  dns.ClassINET,
-		Ttl:    0,
-	}
-	answer.A = net.ParseIP("127.0.0.1")
-
 	m := new(dns.Msg)
-	m.Answer = []dns.RR{answer}
+	m.Answer = make([]dns.RR, 0, 2)
+
+	query := r.Question[0].Name
+	if query[len(query)-1] == '.' {
+		query = query[:len(query)-1]
+	}
+
+	for service := range s.queryServices(query) {
+		rr := new(dns.A)
+
+		var ttl int
+		if service.Ttl != -1 {
+			ttl = service.Ttl
+		} else {
+			ttl = 0
+		}
+
+		rr.Hdr = dns.RR_Header{
+			Name:   r.Question[0].Name,
+			Rrtype: dns.TypeA,
+			Class:  dns.ClassINET,
+			Ttl:    uint32(ttl),
+		}
+		rr.A = service.Ip
+		m.Answer = append(m.Answer, rr)
+	}
 
 	m.SetReply(r)
 	w.WriteMsg(m)
+}
+
+func (s *DNSServer) queryServices(query string) chan *Service {
+	c := make(chan *Service)
+
+	go func() {
+		query := strings.Split(strings.ToLower(query), ".")
+
+		defer s.lock.RUnlock()
+		s.lock.RLock()
+
+		for _, service := range s.services {
+			tests := [][]string{
+				s.config.domain,
+				strings.Split(service.Image, "."),
+				strings.Split(service.Name, "."),
+			}
+
+			for i, q := 0, query; ; i++ {
+				if len(q) == 0 || i > 2 {
+					c <- service
+					break
+				}
+
+				var matches bool
+				if matches, q = matchSuffix(q, tests[i]); !matches {
+					break
+				}
+			}
+
+		}
+
+		close(c)
+
+	}()
+
+	return c
+
+}
+
+func matchSuffix(str, sfx []string) (matches bool, remainder []string) {
+	for i := 1; i <= len(sfx); i++ {
+		if len(str) < i {
+			return true, nil
+		}
+		if sfx[len(sfx)-i] != str[len(str)-i] && str[len(str)-i] != "*" {
+			return false, nil
+		}
+	}
+	return true, str[:len(str)-len(sfx)]
 }
