@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/miekg/dns"
+	"net"
 	"testing"
 	"time"
 )
@@ -33,6 +34,40 @@ func TestDNSResponse(t *testing.T) {
 
 	if len(in.Answer) < 3 {
 		t.Error("DNS request only responded ", len(in.Answer), "answers")
+	}
+
+	server.AddService("foo", Service{Name: "foo", Image: "bar", Ip: net.ParseIP("127.0.0.1")})
+	server.AddService("baz", Service{Name: "baz", Image: "bar", Ip: net.ParseIP("127.0.0.1")})
+
+	var inputs = []struct {
+		query    string
+		expected int
+	}{
+		{"docker.", 2},
+		{"*.docker.", 2},
+		{"bar.docker.", 2},
+		{"foo.docker.", 0},
+		{"baz.bar.docker.", 1},
+	}
+
+	for _, input := range inputs {
+		t.Log(input.query)
+		m := new(dns.Msg)
+		m.Id = dns.Id()
+		m.RecursionDesired = true
+		m.Question = []dns.Question{
+			dns.Question{input.query, dns.TypeA, dns.ClassINET},
+		}
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, TEST_ADDR)
+		if err != nil {
+			t.Error("Error response from the server", err)
+			break
+		}
+
+		if len(in.Answer) != input.expected {
+			t.Error(input, "Expected:", input.expected, " Got:", len(in.Answer))
+		}
 	}
 
 	// // This test is slow and pointless
