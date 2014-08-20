@@ -1,13 +1,13 @@
-dnsdock: *.go | deps
+dnsdock: *.go | deps lint
 	go build
 
 deps:
 	go get
 
-test:
+test: | lint
 	go test -v
 
 lint:
 	go fmt
 
-.PHONY: deps test
+.PHONY: deps test lint
