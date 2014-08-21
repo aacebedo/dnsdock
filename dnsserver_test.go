@@ -187,3 +187,38 @@ func TestDNSRequestMatch(t *testing.T) {
 		}
 	}
 }
+
+func TestDNSRequestMatchNamesWithDots(t *testing.T) {
+	server := NewDNSServer(NewConfig())
+
+	server.AddService("boo", Service{Name: "foo.boo", Image: "bar.zar"})
+	server.AddService("baz", Service{Name: "baz", Image: "bar.zar"})
+	server.AddService("abc", Service{Name: "bar", Image: "zar"})
+
+	inputs := []struct {
+		query, domain string
+		expected      int
+	}{
+		{"foo.boo.bar.zar.docker", "docker", 2},
+		{"zar.docker", "docker", 3},
+		{"*.docker", "docker", 3},
+		{"baz.bar.zar.docker", "docker", 2},
+		{"boo.bar.zar.docker", "docker", 2},
+		{"coo.bar.zar.docker", "docker", 1},
+	}
+
+	for _, input := range inputs {
+		server.config.domain = NewDomain(input.domain)
+
+		t.Log(input.query, input.domain)
+
+		actual := 0
+		for _ = range server.queryServices(input.query) {
+			actual++
+		}
+
+		if actual != input.expected {
+			t.Error(input, "Expected:", input.expected, "Got:", actual)
+		}
+	}
+}
