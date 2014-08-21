@@ -37,7 +37,7 @@ func TestDNSResponse(t *testing.T) {
 	}
 
 	server.AddService("foo", Service{Name: "foo", Image: "bar", Ip: net.ParseIP("127.0.0.1")})
-	server.AddService("baz", Service{Name: "baz", Image: "bar", Ip: net.ParseIP("127.0.0.1")})
+	server.AddService("baz", Service{Name: "baz", Image: "bar", Ip: net.ParseIP("127.0.0.1"), Ttl: -1})
 
 	var inputs = []struct {
 		query    string

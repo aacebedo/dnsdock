@@ -48,7 +48,7 @@ func TestCleanContainerName(t *testing.T) {
 
 	for input, expected := range inputs {
 		t.Log(input)
-		if actual := getImageName(input); actual != expected {
+		if actual := cleanContainerName(input); actual != expected {
 			t.Error(input, "Expected:", expected, "Got:", actual)
 		}
 	}

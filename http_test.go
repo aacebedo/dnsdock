@@ -31,7 +31,7 @@ func TestServiceRequests(t *testing.T) {
 		{"GET", "/services/foo", "", `{"Name":"foo","Image":"bar","Ip":"127.0.0.1","Ttl":-1}`, 200},
 		{"PUT", "/services/boo", `{"name": "baz", "image": "bar", "ip": "127.0.0.2"}`, "", 200},
 		{"GET", "/services", "", `{"boo":{"Name":"baz","Image":"bar","Ip":"127.0.0.2","Ttl":-1},"foo":{"Name":"foo","Image":"bar","Ip":"127.0.0.1","Ttl":-1}}`, 200},
-		{"PATCH", "/services/boo", `{"name": "bar", "ttl": 20}`, "", 200},
+		{"PATCH", "/services/boo", `{"name": "bar", "ttl": 20, "image": "bar"}`, "", 200},
 		{"GET", "/services/boo", "", `{"Name":"bar","Image":"bar","Ip":"127.0.0.2","Ttl":20}`, 200},
 		{"DELETE", "/services/foo", ``, "", 200},
 		{"GET", "/services", "", `{"boo":{"Name":"bar","Image":"bar","Ip":"127.0.0.2","Ttl":20}}`, 200},
