@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -64,9 +65,9 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 	service.Name = cleanContainerName(inspect.Name)
 	service.Ip = net.ParseIP(inspect.NetworkSettings.IpAddress)
 
-	log.Println(inspect.Config.Env)
-	if len(inspect.Config.Env) != 0 {
-		service = overrideFromEnv(service, splitEnv(inspect.Config.Env))
+	service = overrideFromEnv(service, splitEnv(inspect.Config.Env))
+	if service == nil {
+		return nil, errors.New("Skipping " + id)
 	}
 
 	return service, nil
@@ -127,6 +128,38 @@ func splitEnv(in []string) (out map[string]string) {
 }
 
 func overrideFromEnv(in *Service, env map[string]string) (out *Service) {
+	var region string
+	for k, v := range env {
+		if k == "DNSDOCK_IGNORE" || k == "SERVICE_IGNORE" {
+			return nil
+		}
+
+		if k == "DNSDOCK_NAME" {
+			in.Name = v
+		}
+
+		if k == "SERVICE_TAGS" {
+			in.Name = strings.Split(v, ",")[0]
+		}
+
+		if k == "DNSDOCK_IMAGE" || k == "SERVICE_NAME" {
+			in.Image = v
+		}
+
+		if k == "DNSDOCK_TTL" {
+			if ttl, err := strconv.Atoi(v); err == nil {
+				in.Ttl = ttl
+			}
+		}
+
+		if k == "SERVICE_REGION" {
+			region = v
+		}
+	}
+
+	if len(region) > 0 {
+		in.Image = in.Image + "." + region
+	}
 	out = in
 	return
 }

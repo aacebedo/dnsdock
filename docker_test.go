@@ -66,3 +66,37 @@ func TestSplitEnv(t *testing.T) {
 		t.Error(input, "Expected:", expected, "Got:", actual)
 	}
 }
+
+func TestOverrideFromEnv(t *testing.T) {
+	getService := func() *Service {
+		service := NewService()
+		service.Name = "myfoo"
+		service.Image = "mybar"
+		return service
+	}
+
+	s := getService()
+	s = overrideFromEnv(s, map[string]string{"SERVICE_IGNORE": "1"})
+	if s != nil {
+		t.Error("Skipping failed")
+	}
+
+	s = getService()
+	s = overrideFromEnv(s, map[string]string{"DNSDOCK_IGNORE": "1"})
+	if s != nil {
+		t.Error("Skipping failed(2)")
+	}
+
+	s = getService()
+	s = overrideFromEnv(s, map[string]string{"DNSDOCK_NAME": "master", "DNSDOCK_IMAGE": "mysql", "DNSDOCK_TTL": "22"})
+	if s.Name != "master" || s.Image != "mysql" || s.Ttl != 22 {
+		t.Error("Invalid DNSDOCK override", s)
+	}
+
+	s = getService()
+	s = overrideFromEnv(s, map[string]string{"SERVICE_TAGS": "master,something", "SERVICE_NAME": "mysql", "SERVICE_REGION": "us2"})
+	if s.Name != "master" || s.Image != "mysql.us2" {
+		t.Error("Invalid SERVICE overrid", s)
+	}
+
+}
