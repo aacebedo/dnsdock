@@ -64,6 +64,11 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 	service.Name = cleanContainerName(inspect.Name)
 	service.Ip = net.ParseIP(inspect.NetworkSettings.IpAddress)
 
+	log.Println(inspect.Config.Env)
+	if len(inspect.Config.Env) != 0 {
+		service = overrideFromEnv(service, splitEnv(inspect.Config.Env))
+	}
+
 	return service, nil
 }
 
@@ -110,4 +115,18 @@ func imageNameIsSHA(image, sha string) bool {
 
 func cleanContainerName(name string) string {
 	return strings.Replace(name, "/", "", -1)
+}
+
+func splitEnv(in []string) (out map[string]string) {
+	out = make(map[string]string, len(in))
+	for _, exp := range in {
+		parts := strings.SplitN(exp, "=", 2)
+		out[strings.Trim(parts[0], " ")] = strings.Trim(parts[1], " ") // trim just in case
+	}
+	return
+}
+
+func overrideFromEnv(in *Service, env map[string]string) (out *Service) {
+	out = in
+	return
 }

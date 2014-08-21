@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -51,5 +52,17 @@ func TestCleanContainerName(t *testing.T) {
 		if actual := cleanContainerName(input); actual != expected {
 			t.Error(input, "Expected:", expected, "Got:", actual)
 		}
+	}
+}
+
+func TestSplitEnv(t *testing.T) {
+	input := []string{"FOO=something ", "BAR_BAZ=dsfjds sadf asd"}
+	expected := map[string]string{
+		"FOO":     "something",
+		"BAR_BAZ": "dsfjds sadf asd",
+	}
+	actual := splitEnv(input)
+	if eq := reflect.DeepEqual(actual, expected); !eq {
+		t.Error(input, "Expected:", expected, "Got:", actual)
 	}
 }
