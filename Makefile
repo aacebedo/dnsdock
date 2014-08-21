@@ -10,4 +10,7 @@ test: | lint
 lint:
 	go fmt
 
-.PHONY: deps test lint
+install:
+	go install -ldflags "-X main.version `git describe --tags HEAD``if  git status --porcelain --untracked-files=no >/dev/null ; then echo "-dirty"; fi`" ./...
+
+.PHONY: deps test lint install

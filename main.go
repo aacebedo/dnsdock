@@ -7,6 +7,8 @@ import (
 	"os"
 )
 
+var version string
+
 func main() {
 	help := flag.Bool("help", false, "Show this message")
 
@@ -21,7 +23,17 @@ func main() {
 	flag.BoolVar(&config.verbose, "verbose", true, "Verbose output")
 	flag.IntVar(&config.ttl, "ttl", config.ttl, "TTL for matched requests")
 
+	var showVersion bool
+	if len(version) > 0 {
+		flag.BoolVar(&showVersion, "version", false, "Show application version")
+	}
+
 	flag.Parse()
+
+	if showVersion {
+		fmt.Println("dnsdock", version)
+		return
+	}
 
 	if *help {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options]\n", os.Args[0])
