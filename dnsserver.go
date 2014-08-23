@@ -5,6 +5,7 @@ import (
 	"github.com/miekg/dns"
 	"log"
 	"net"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -92,6 +93,7 @@ func (s *DNSServer) GetService(id string) (Service, error) {
 	s.lock.RLock()
 
 	if s, ok := s.services[id]; !ok {
+		// Check for a pa
 		return *new(Service), errors.New("No such service: " + id)
 	} else {
 		return *s, nil
@@ -195,6 +197,32 @@ func (s *DNSServer) queryServices(query string) chan *Service {
 
 	return c
 
+}
+
+// Checks for a partial match for container SHA and outputs it if found.
+func (s *DNSServer) getExpandedId(in string) (out string) {
+	out = in
+
+	// Hard to make a judgement on small image names.
+	if len(in) < 4 {
+		return
+	}
+
+	if isHex, _ := regexp.MatchString("^[0-9a-f]+$", in); !isHex {
+		return
+	}
+
+	for id, _ := range s.services {
+		if len(id) == 64 {
+			if isHex, _ := regexp.MatchString("^[0-9a-f]+$", id); isHex {
+				if strings.HasPrefix(id, in) {
+					out = id
+					return
+				}
+			}
+		}
+	}
+	return
 }
 
 func matchSuffix(str, sfx []string) (matches bool, remainder []string) {

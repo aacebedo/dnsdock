@@ -222,3 +222,27 @@ func TestDNSRequestMatchNamesWithDots(t *testing.T) {
 		}
 	}
 }
+
+func TestGetExpandedId(t *testing.T) {
+	server := NewDNSServer(NewConfig())
+
+	server.AddService("416261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f142bc0df", Service{})
+	server.AddService("316261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f14nothex", Service{})
+	server.AddService("abcdefabcdef", Service{})
+
+	inputs := map[string]string{
+		"416":          "416",
+		"41626":        "416261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f142bc0df",
+		"416261e74515": "416261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f142bc0df",
+		"31626":        "31626",
+		"abcde":        "abcde",
+		"foobar":       "foobar",
+	}
+
+	for input, expected := range inputs {
+		if actual := server.getExpandedId(input); actual != expected {
+			t.Error(input, "Expected:", expected, "Got:", actual)
+		}
+	}
+
+}
