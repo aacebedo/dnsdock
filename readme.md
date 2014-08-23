@@ -17,6 +17,8 @@ DNS server for automatic docker container discovery. Simplified version of [cros
 
 - No support for Javascript plugins.
 
+- There's a slight difference in a way image names are extracted from a container. Skydock uses the last tag set on image while dnsdock uses the specific tag that was used when the container was created. This means that if a new version of an image comes out and untags the image that your container still uses, the DNS requests for this old container still work.
+
 #### Usage
 
 Dnsdock connects to Docker Remote API and keeps an up to date list of running containers. If a DNS request matches some of the containers their local IP addresses are returned.
