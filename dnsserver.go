@@ -64,6 +64,7 @@ func (s *DNSServer) AddService(id string, service Service) {
 	defer s.lock.Unlock()
 	s.lock.Lock()
 
+	id = s.getExpandedId(id)
 	s.services[id] = &service
 
 	if s.config.verbose {
@@ -75,6 +76,7 @@ func (s *DNSServer) RemoveService(id string) error {
 	defer s.lock.Unlock()
 	s.lock.Lock()
 
+	id = s.getExpandedId(id)
 	if _, ok := s.services[id]; !ok {
 		return errors.New("No such service: " + id)
 	}
@@ -92,6 +94,7 @@ func (s *DNSServer) GetService(id string) (Service, error) {
 	defer s.lock.RUnlock()
 	s.lock.RLock()
 
+	id = s.getExpandedId(id)
 	if s, ok := s.services[id]; !ok {
 		// Check for a pa
 		return *new(Service), errors.New("No such service: " + id)

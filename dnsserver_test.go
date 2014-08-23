@@ -142,6 +142,21 @@ func TestServiceManagement(t *testing.T) {
 		t.Error("Item count after remove should be 1")
 	}
 
+	list.AddService("416261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f142bc0df", Service{Name: "mysql"})
+
+	if s1, _ = list.GetService("416261"); s1.Name != "mysql" {
+		t.Error("Container can't be found by prefix")
+	}
+
+	err = list.RemoveService("416261")
+	if err != nil {
+		t.Error("Removing 416261 failed", err)
+	}
+
+	if len(list.GetAllServices()) != 1 {
+		t.Error("Item count after remove should be 1")
+	}
+
 }
 
 func TestDNSRequestMatch(t *testing.T) {
