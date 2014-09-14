@@ -35,7 +35,7 @@ type Config struct {
 func NewConfig() *Config {
 	dockerHost := os.Getenv("DOCKER_HOST")
 	if len(dockerHost) == 0 {
-		dockerHost = "unix://var/run/docker.sock"
+		dockerHost = "unix:///var/run/docker.sock"
 	}
 
 	return &Config{
