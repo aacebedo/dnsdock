@@ -126,13 +126,16 @@ func (s *DNSServer) forwardRequest(w dns.ResponseWriter, r *dns.Msg) {
 }
 
 func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
+	m := new(dns.Msg)
+	m.SetReply(r)
+
 	// Only care about A requests
+	// Send empty response otherwise
 	if r.Question[0].Qtype != dns.TypeA {
-		s.forwardRequest(w, r)
+		w.WriteMsg(m)
 		return
 	}
 
-	m := new(dns.Msg)
 	m.Answer = make([]dns.RR, 0, 2)
 
 	query := r.Question[0].Name
@@ -160,7 +163,6 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		m.Answer = append(m.Answer, rr)
 	}
 
-	m.SetReply(r)
 	w.WriteMsg(m)
 }
 
