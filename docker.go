@@ -28,7 +28,7 @@ func NewDockerManager(c *Config, list ServiceListProvider) (*DockerManager, erro
 func (d *DockerManager) Start() error {
 	d.docker.StartMonitorEvents(d.eventCallback)
 
-	containers, err := d.docker.ListContainers(false)
+	containers, err := d.docker.ListContainers(false, false, "")
 	if err != nil {
 		return errors.New("Error connecting to docker socket: " + err.Error())
 	}
