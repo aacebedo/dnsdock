@@ -1,4 +1,4 @@
-FROM crosbymichael/golang
+FROM golang:1.4.1
 
 ADD . /go/src/github.com/tonistiigi/dnsdock
 
