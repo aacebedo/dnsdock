@@ -26,7 +26,13 @@ func NewDockerManager(c *Config, list ServiceListProvider) (*DockerManager, erro
 }
 
 func (d *DockerManager) Start() error {
-	d.docker.StartMonitorEvents(d.eventCallback)
+	ec := make(chan error)
+	d.docker.StartMonitorEvents(d.eventCallback, ec)
+	go func() {
+		for {
+			log.Println("Event error", <-ec)
+		}
+	}()
 
 	containers, err := d.docker.ListContainers(false, false, "")
 	if err != nil {
@@ -73,7 +79,7 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 	return service, nil
 }
 
-func (d *DockerManager) eventCallback(event *dockerclient.Event, args ...interface{}) {
+func (d *DockerManager) eventCallback(event *dockerclient.Event, ec chan error, args ...interface{}) {
 	//log.Printf("Received event: %#v %#v\n", *event, args)
 
 	switch event.Status {
@@ -83,7 +89,7 @@ func (d *DockerManager) eventCallback(event *dockerclient.Event, args ...interfa
 	case "start", "restart":
 		service, err := d.getService(event.Id)
 		if err != nil {
-			log.Println(err)
+			ec <- err
 			return
 		}
 
