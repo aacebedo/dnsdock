@@ -2,13 +2,15 @@ package main
 
 import (
 	"errors"
-	"github.com/miekg/dns"
 	"log"
 	"net"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/miekg/dns"
+	"github.com/pkg/math"
 )
 
 type Service struct {
@@ -181,24 +183,22 @@ func (s *DNSServer) queryServices(query string) chan *Service {
 		s.lock.RLock()
 
 		for _, service := range s.services {
-			tests := [][]string{
-				s.config.domain,
-				strings.Split(service.Image, "."),
-				strings.Split(service.Name, "."),
+			// create the name for this service, skip empty strings
+			test := []string{}
+
+			if len(service.Name) > 0 {
+				test = append(test, strings.Split(service.Name, ".")...)
 			}
 
-			for i, q := 0, query; ; i++ {
-				if len(q) == 0 || i > 2 {
-					c <- service
-					break
-				}
-
-				var matches bool
-				if matches, q = matchSuffix(q, tests[i]); !matches {
-					break
-				}
+			if len(service.Image) > 0 {
+				test = append(test, strings.Split(service.Image, ".")...)
 			}
 
+			test = append(test, s.config.domain...)
+
+			if isPrefixQuery(query, test) {
+				c <- service
+			}
 		}
 
 		close(c)
@@ -252,14 +252,39 @@ func (s *DNSServer) createSOA() []dns.RR {
 	return []dns.RR{soa}
 }
 
-func matchSuffix(str, sfx []string) (matches bool, remainder []string) {
-	for i := 1; i <= len(sfx); i++ {
-		if len(str) < i {
-			return true, nil
+// isPrefixQuery is used to determine whether "query" is a potential prefix query for "name".
+// It allows for wildcards (*) in the query. However is makes one exception to accomodate
+// the desired behavior we wish from dnsdock, namely, the query may be longer than "name"
+// and still be a valid prefix query for "name".
+// Examples:
+//   foo.bar.baz.qux is a valid query for bar.baz.qux (longer prefix is okay)
+//   foo.*.baz.qux   is a valid query for bar.baz.qux (wildcards okay)
+//   *.baz.qux       is a valid query for baz.baz.qux (wildcard prefix okay)
+//
+func isPrefixQuery(query, name []string) bool {
+	// perform matching in reverse order
+	q := reverse(query)
+	n := reverse(name)
+
+	for i := 0; i < math.Min(len(q), len(n)); i++ {
+		if q[i] == "*" {
+			continue
 		}
-		if sfx[len(sfx)-i] != str[len(str)-i] && str[len(str)-i] != "*" {
-			return false, nil
+
+		if q[i] != n[i] {
+			return false
 		}
 	}
-	return true, str[:len(str)-len(sfx)]
+
+	return true
+}
+
+func reverse(strslice []string) []string {
+	ret := []string{}
+
+	for i := len(strslice) - 1; i >= 0; i-- {
+		ret = append(ret, strslice[i])
+	}
+
+	return ret
 }
