@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/miekg/dns"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/miekg/dns"
 )
 
 func TestDNSResponse(t *testing.T) {
@@ -32,8 +33,8 @@ func TestDNSResponse(t *testing.T) {
 		t.Error("Error response from the server", err)
 	}
 
-	if len(in.Answer) < 3 {
-		t.Error("DNS request only responded ", len(in.Answer), "answers")
+	if len(in.Answer) < 1 {
+		t.Error("Could not get A response for google.com")
 	}
 
 	server.AddService("foo", Service{Name: "foo", Image: "bar", Ip: net.ParseIP("127.0.0.1")})
