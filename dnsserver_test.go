@@ -227,6 +227,8 @@ func TestDNSRequestMatchNamesWithDots(t *testing.T) {
 		expected      int
 	}{
 		{"foo.boo.bar.zar.docker", "docker", 2},
+		{"coo.boo.bar.zar.docker", "docker", 1},
+		{"doo.coo.boo.bar.zar.docker", "docker", 1},
 		{"zar.docker", "docker", 3},
 		{"*.docker", "docker", 4},
 		{"baz.bar.zar.docker", "docker", 2},
@@ -234,6 +236,10 @@ func TestDNSRequestMatchNamesWithDots(t *testing.T) {
 		{"coo.bar.zar.docker", "docker", 1},
 		{"quu.docker.local", "docker.local", 1},
 		{"qux.quu.docker.local", "docker.local", 1},
+		{"qux.*.docker.local", "docker.local", 1},
+		{"quz.*.docker.local", "docker.local", 0},
+		{"quz.quu.docker.local", "docker.local", 0},
+		{"quz.qux.quu.docker.local", "docker.local", 1},
 	}
 
 	for _, input := range inputs {
