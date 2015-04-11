@@ -90,6 +90,10 @@ Additional configuration options to dnsdock command:
 If you also want to let the host machine discover the containers add `nameserver 172.17.42.1` to your `/etc/resolv.conf`.
 
 
+#### SELinux and Fedora / RHEL / CentOS
+
+Mounting docker daemon's unix socket may not work with default configuration on these platforms. Please use [selinux-dockersock](https://github.com/dpw/selinux-dockersock) to fix this. More information in [#11](https://github.com/tonistiigi/dnsdock/issues/11).
+
 #### HTTP Server
 
 For easy overview and manual control dnsdock also includes HTTP server that lets you configure the server using a JSON API.
