@@ -8,15 +8,15 @@
 		},
 		{
 			"ImportPath": "github.com/gorilla/mux",
-			"Rev": "e444e69cbd2e2e3e0749a2f3c717cec491552bbf"
+			"Rev": "8096f47503459bcc74d1f4c487b7e6e42e5746b5"
 		},
 		{
 			"ImportPath": "github.com/miekg/dns",
-			"Rev": "b65f52f3f0dd1afa25cbbf63f8e7eb15fb5c0641"
+			"Rev": "e98f4bc5ff71defdb2e81147cffe9fee92517ad8"
 		},
 		{
 			"ImportPath": "github.com/samalba/dockerclient",
-			"Rev": "7e4366cfab2f2b44fcb493bee93a156a763d58b6"
+			"Rev": "578f4b4d729fb23a8ffade2f7e3f335a964fea0c"
 		}
 	]
 }

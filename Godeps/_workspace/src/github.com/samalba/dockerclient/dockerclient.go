@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -32,6 +31,7 @@ type DockerClient struct {
 	HTTPClient    *http.Client
 	TLSConfig     *tls.Config
 	monitorEvents int32
+	monitorStats  int32
 }
 
 type Error struct {
@@ -61,7 +61,7 @@ func NewDockerClientTimeout(daemonUrl string, tlsConfig *tls.Config, timeout tim
 		}
 	}
 	httpClient := newHTTPClient(u, tlsConfig, timeout)
-	return &DockerClient{u, httpClient, tlsConfig, 0}, nil
+	return &DockerClient{u, httpClient, tlsConfig, 0, 0}, nil
 }
 
 func (client *DockerClient) doRequest(method string, path string, body []byte, headers map[string]string) ([]byte, error) {
@@ -198,6 +198,20 @@ func (client *DockerClient) ContainerLogs(id string, options *LogOptions) (io.Re
 	return resp.Body, nil
 }
 
+func (client *DockerClient) ContainerChanges(id string) ([]*ContainerChanges, error) {
+	uri := fmt.Sprintf("/%s/containers/%s/changes", APIVersion, id)
+	data, err := client.doRequest("GET", uri, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	changes := []*ContainerChanges{}
+	err = json.Unmarshal(data, &changes)
+	if err != nil {
+		return nil, err
+	}
+	return changes, nil
+}
+
 func (client *DockerClient) StartContainer(id string, config *HostConfig) error {
 	data, err := json.Marshal(config)
 	if err != nil {
@@ -247,7 +261,6 @@ func (client *DockerClient) getEvents(cb Callback, ec chan error, args ...interf
 	uri := fmt.Sprintf("%s/%s/events", client.URL.String(), APIVersion)
 	resp, err := client.HTTPClient.Get(uri)
 	if err != nil {
-		log.Printf("GET %s failed: %v", uri, err)
 		ec <- err
 		return
 	}
@@ -257,7 +270,6 @@ func (client *DockerClient) getEvents(cb Callback, ec chan error, args ...interf
 	for atomic.LoadInt32(&client.monitorEvents) > 0 {
 		var event *Event
 		if err := dec.Decode(&event); err != nil {
-			log.Printf("Event decoding failed: %v", err)
 			ec <- err
 			return
 		}
@@ -267,6 +279,35 @@ func (client *DockerClient) getEvents(cb Callback, ec chan error, args ...interf
 
 func (client *DockerClient) StopAllMonitorEvents() {
 	atomic.StoreInt32(&client.monitorEvents, 0)
+}
+
+func (client *DockerClient) StartMonitorStats(id string, cb StatCallback, ec chan error, args ...interface{}) {
+	atomic.StoreInt32(&client.monitorStats, 1)
+	go client.getStats(id, cb, ec, args...)
+}
+
+func (client *DockerClient) getStats(id string, cb StatCallback, ec chan error, args ...interface{}) {
+	uri := fmt.Sprintf("%s/%s/containers/%s/stats", client.URL.String(), APIVersion, id)
+	resp, err := client.HTTPClient.Get(uri)
+	if err != nil {
+		ec <- err
+		return
+	}
+	defer resp.Body.Close()
+
+	dec := json.NewDecoder(resp.Body)
+	for atomic.LoadInt32(&client.monitorStats) > 0 {
+		var stats *Stats
+		if err := dec.Decode(&stats); err != nil {
+			ec <- err
+			return
+		}
+		cb(id, stats, ec, args...)
+	}
+}
+
+func (client *DockerClient) StopAllMonitorStats() {
+	atomic.StoreInt32(&client.monitorStats, 0)
 }
 
 func (client *DockerClient) Version() (*Version, error) {
@@ -308,12 +349,30 @@ func (client *DockerClient) PullImage(name string, auth *AuthConfig) error {
 	return nil
 }
 
-func (client *DockerClient) RemoveContainer(id string, force bool) error {
+func (client *DockerClient) LoadImage(reader io.Reader) error {
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return err
+	}
+
+	uri := fmt.Sprintf("/%s/images/load", APIVersion)
+	_, err = client.doRequest("POST", uri, data, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (client *DockerClient) RemoveContainer(id string, force, volumes bool) error {
 	argForce := 0
+	argVolumes := 0
 	if force == true {
 		argForce = 1
 	}
-	args := fmt.Sprintf("force=%d", argForce)
+	if volumes == true {
+		argVolumes = 1
+	}
+	args := fmt.Sprintf("force=%d&v=%d", argForce, argVolumes)
 	uri := fmt.Sprintf("/%s/containers/%s?%s", APIVersion, id, args)
 	_, err := client.doRequest("DELETE", uri, nil, nil)
 	return err
@@ -332,10 +391,17 @@ func (client *DockerClient) ListImages() ([]*Image, error) {
 	return images, nil
 }
 
-func (client *DockerClient) RemoveImage(name string) error {
+func (client *DockerClient) RemoveImage(name string) ([]*ImageDelete, error) {
 	uri := fmt.Sprintf("/%s/images/%s", APIVersion, name)
-	_, err := client.doRequest("DELETE", uri, nil, nil)
-	return err
+	data, err := client.doRequest("DELETE", uri, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	var imageDelete []*ImageDelete
+	if err := json.Unmarshal(data, &imageDelete); err != nil {
+		return nil, err
+	}
+	return imageDelete, nil
 }
 
 func (client *DockerClient) PauseContainer(id string) error {
