@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/miekg/dns"
-	"github.com/pkg/math"
 )
 
 type Service struct {
@@ -252,39 +251,20 @@ func (s *DNSServer) createSOA() []dns.RR {
 	return []dns.RR{soa}
 }
 
-// isPrefixQuery is used to determine whether "query" is a potential prefix query for "name".
-// It allows for wildcards (*) in the query. However is makes one exception to accomodate
-// the desired behavior we wish from dnsdock, namely, the query may be longer than "name"
-// and still be a valid prefix query for "name".
+// isPrefixQuery is used to determine whether "query" is a potential prefix
+// query for "name". It allows for wildcards (*) in the query. However is makes
+// one exception to accomodate the desired behavior we wish from dnsdock,
+// namely, the query may be longer than "name" and still be a valid prefix
+// query for "name".
 // Examples:
 //   foo.bar.baz.qux is a valid query for bar.baz.qux (longer prefix is okay)
 //   foo.*.baz.qux   is a valid query for bar.baz.qux (wildcards okay)
 //   *.baz.qux       is a valid query for baz.baz.qux (wildcard prefix okay)
-//
 func isPrefixQuery(query, name []string) bool {
-	// perform matching in reverse order
-	q := reverse(query)
-	n := reverse(name)
-
-	for i := 0; i < math.Min(len(q), len(n)); i++ {
-		if q[i] == "*" {
-			continue
-		}
-
-		if q[i] != n[i] {
+	for i, j := len(query)-1, len(name)-1; i >= 0 && j >= 0; i, j = i-1, j-1 {
+		if query[i] != name[j] && query[i] != "*" {
 			return false
 		}
 	}
-
 	return true
-}
-
-func reverse(strslice []string) []string {
-	ret := []string{}
-
-	for i := len(strslice) - 1; i >= 0; i-- {
-		ret = append(ret, strslice[i])
-	}
-
-	return ret
 }
