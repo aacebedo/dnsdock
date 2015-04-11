@@ -2,6 +2,7 @@ package main
 
 import (
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -172,26 +173,29 @@ func TestDNSRequestMatch(t *testing.T) {
 	server.AddService("foo", Service{Name: "foo", Image: "bar"})
 	server.AddService("baz", Service{Name: "baz", Image: "bar"})
 	server.AddService("abc", Service{Name: "def", Image: "ghi"})
+	server.AddService("qux", Service{Name: "qux", Image: ""})
 
 	inputs := []struct {
 		query, domain string
 		expected      int
 	}{
-		{"docker", "docker", 3},
+		{"docker", "docker", 4},
 		{"baz.docker", "docker.local", 0},
-		{"docker.local", "docker.local", 3},
+		{"docker.local", "docker.local", 4},
 		{"foo.docker.local", "docker.local", 0},
-		{"bar.docker.local", "docker.local", 2},
-		{"foo.bar.docker.local", "docker.local", 1},
-		{"*.local", "docker.local", 3},
-		{"*.docker.local", "docker.local", 3},
-		{"bar.*.local", "docker.local", 2},
-		{"*.*.local", "docker.local", 3},
-		{"foo.*.local", "docker.local", 0},
-		{"bar.*.docker.local", "docker.local", 0},
-		{"foo.*.docker", "docker", 1},
-		{"baz.foo.bar.docker.local", "docker.local", 1},
-		{"foo.bar", "baz.foo.bar", 3},
+		{"bar.docker.local", "docker.local", 2},         // matches [foo, baz].docker.local
+		{"foo.bar.docker.local", "docker.local", 1},     // matches foo.bar.docker.local
+		{"*.local", "docker.local", 4},                  // matches All
+		{"*.docker.local", "docker.local", 4},           // matches All
+		{"bar.*.local", "docker.local", 2},              // matches [foo.bar, baz.bar].docker.local
+		{"*.*.local", "docker.local", 4},                // matches All
+		{"foo.*.local", "docker.local", 0},              // matches None
+		{"bar.*.docker.local", "docker.local", 1},       // matches qux.docker.local
+		{"foo.*.docker", "docker", 2},                   // matches foo.bar.docker, qux.docker
+		{"baz.foo.bar.docker.local", "docker.local", 1}, // matches foo.bar.docker.local
+		{"foo.bar", "baz.foo.bar", 4},                   // matches all (catchall prefix)
+		{"qux.docker.local", "docker.local", 1},         // matches qux.docker.local
+		{"*.qux.docker", "docker", 1},                   // matches qux.docker
 	}
 
 	for _, input := range inputs {
@@ -216,6 +220,7 @@ func TestDNSRequestMatchNamesWithDots(t *testing.T) {
 	server.AddService("boo", Service{Name: "foo.boo", Image: "bar.zar"})
 	server.AddService("baz", Service{Name: "baz", Image: "bar.zar"})
 	server.AddService("abc", Service{Name: "bar", Image: "zar"})
+	server.AddService("qux", Service{Name: "qux.quu", Image: ""})
 
 	inputs := []struct {
 		query, domain string
@@ -223,17 +228,18 @@ func TestDNSRequestMatchNamesWithDots(t *testing.T) {
 	}{
 		{"foo.boo.bar.zar.docker", "docker", 2},
 		{"zar.docker", "docker", 3},
-		{"*.docker", "docker", 3},
+		{"*.docker", "docker", 4},
 		{"baz.bar.zar.docker", "docker", 2},
 		{"boo.bar.zar.docker", "docker", 2},
 		{"coo.bar.zar.docker", "docker", 1},
+		{"quu.docker.local", "docker.local", 1},
+		{"qux.quu.docker.local", "docker.local", 1},
 	}
 
 	for _, input := range inputs {
 		server.config.domain = NewDomain(input.domain)
 
 		t.Log(input.query, input.domain)
-
 		actual := 0
 		for _ = range server.queryServices(input.query) {
 			actual++
@@ -267,4 +273,23 @@ func TestGetExpandedId(t *testing.T) {
 		}
 	}
 
+}
+
+func TestIsPrefixQuery(t *testing.T) {
+	tests := []struct {
+		query, name string
+		expected    bool
+	}{
+		{"foo.bar.baz", "foo.bar.baz", true},
+		{"quu.foo.bar.baz", "foo.bar.baz", true},
+		{"*.bar.baz", "foo.bar.baz", true},
+		{"quu.*.bar.baz", "foo.bar.baz", true},
+		{"faa.foo.baz", "foo.bar.baz", false},
+	}
+
+	for _, input := range tests {
+		if isPrefixQuery(strings.Split(input.query, "."), strings.Split(input.name, ".")) != input.expected {
+			t.Error("Expected", input.query, "to be a valid query for", input.name)
+		}
+	}
 }
