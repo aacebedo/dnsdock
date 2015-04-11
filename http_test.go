@@ -9,10 +9,10 @@ import (
 )
 
 func TestServiceRequests(t *testing.T) {
-	const TEST_ADDR = "127.0.0.1:9980"
+	const TestAddr = "127.0.0.1:9980"
 
 	config := NewConfig()
-	config.httpAddr = TEST_ADDR
+	config.httpAddr = TestAddr
 
 	server := NewHTTPServer(config, NewDNSServer(config))
 	go server.Start()
@@ -39,7 +39,7 @@ func TestServiceRequests(t *testing.T) {
 
 	for _, input := range tests {
 		t.Log(input.method, input.url)
-		req, err := http.NewRequest(input.method, "http://"+TEST_ADDR+input.url, strings.NewReader(input.body))
+		req, err := http.NewRequest(input.method, "http://"+TestAddr+input.url, strings.NewReader(input.body))
 		if err != nil {
 			t.Error(err)
 		}
@@ -71,7 +71,7 @@ func TestServiceRequests(t *testing.T) {
 	if config.ttl != 0 {
 		t.Error("Default TTL is not 0")
 	}
-	req, err := http.NewRequest("PUT", "http://"+TEST_ADDR+"/set/ttl", strings.NewReader("12"))
+	req, err := http.NewRequest("PUT", "http://"+TestAddr+"/set/ttl", strings.NewReader("12"))
 	if err != nil {
 		t.Error(err)
 	}

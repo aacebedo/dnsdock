@@ -10,10 +10,10 @@ import (
 )
 
 func TestDNSResponse(t *testing.T) {
-	const TEST_ADDR = "127.0.0.1:9953"
+	const TestAddr = "127.0.0.1:9953"
 
 	config := NewConfig()
-	config.dnsAddr = TEST_ADDR
+	config.dnsAddr = TestAddr
 
 	server := NewDNSServer(config)
 	go server.Start()
@@ -28,7 +28,7 @@ func TestDNSResponse(t *testing.T) {
 		dns.Question{"google.com.", dns.TypeA, dns.ClassINET},
 	}
 	c := new(dns.Client)
-	in, _, err := c.Exchange(m, TEST_ADDR)
+	in, _, err := c.Exchange(m, TestAddr)
 
 	if err != nil {
 		t.Error("Error response from the server", err)
@@ -61,7 +61,7 @@ func TestDNSResponse(t *testing.T) {
 			dns.Question{input.query, dns.TypeA, dns.ClassINET},
 		}
 		c := new(dns.Client)
-		in, _, err := c.Exchange(m, TEST_ADDR)
+		in, _, err := c.Exchange(m, TestAddr)
 		if err != nil {
 			t.Error("Error response from the server", err)
 			break
@@ -257,7 +257,7 @@ func TestDNSRequestMatchNamesWithDots(t *testing.T) {
 	}
 }
 
-func TestGetExpandedId(t *testing.T) {
+func TestgetExpandedID(t *testing.T) {
 	server := NewDNSServer(NewConfig())
 
 	server.AddService("416261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f142bc0df", Service{})
@@ -274,7 +274,7 @@ func TestGetExpandedId(t *testing.T) {
 	}
 
 	for input, expected := range inputs {
-		if actual := server.getExpandedId(input); actual != expected {
+		if actual := server.getExpandedID(input); actual != expected {
 			t.Error(input, "Expected:", expected, "Got:", actual)
 		}
 	}

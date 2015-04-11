@@ -66,7 +66,7 @@ func (s *DNSServer) AddService(id string, service Service) {
 	defer s.lock.Unlock()
 	s.lock.Lock()
 
-	id = s.getExpandedId(id)
+	id = s.getExpandedID(id)
 	s.services[id] = &service
 
 	if s.config.verbose {
@@ -78,7 +78,7 @@ func (s *DNSServer) RemoveService(id string) error {
 	defer s.lock.Unlock()
 	s.lock.Lock()
 
-	id = s.getExpandedId(id)
+	id = s.getExpandedID(id)
 	if _, ok := s.services[id]; !ok {
 		return errors.New("No such service: " + id)
 	}
@@ -96,13 +96,12 @@ func (s *DNSServer) GetService(id string) (Service, error) {
 	defer s.lock.RUnlock()
 	s.lock.RLock()
 
-	id = s.getExpandedId(id)
-	if s, ok := s.services[id]; !ok {
-		// Check for a pa
-		return *new(Service), errors.New("No such service: " + id)
-	} else {
+	id = s.getExpandedID(id)
+	if s, ok := s.services[id]; ok {
 		return *s, nil
 	}
+	// Check for a pa
+	return *new(Service), errors.New("No such service: " + id)
 }
 
 func (s *DNSServer) GetAllServices() map[string]Service {
@@ -209,7 +208,7 @@ func (s *DNSServer) queryServices(query string) chan *Service {
 }
 
 // Checks for a partial match for container SHA and outputs it if found.
-func (s *DNSServer) getExpandedId(in string) (out string) {
+func (s *DNSServer) getExpandedID(in string) (out string) {
 	out = in
 
 	// Hard to make a judgement on small image names.
@@ -221,7 +220,7 @@ func (s *DNSServer) getExpandedId(in string) (out string) {
 		return
 	}
 
-	for id, _ := range s.services {
+	for id := range s.services {
 		if len(id) == 64 {
 			if isHex, _ := regexp.MatchString("^[0-9a-f]+$", id); isHex {
 				if strings.HasPrefix(id, in) {
