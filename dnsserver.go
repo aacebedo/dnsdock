@@ -133,7 +133,7 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 
 	// Only care about A requests
 	// Send empty response otherwise
-	if r.Question[0].Qtype != dns.TypeA {
+	if len(r.Question) == 0 || r.Question[0].Qtype != dns.TypeA {
 		m.Answer = s.createSOA()
 		w.WriteMsg(m)
 		return

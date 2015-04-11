@@ -2,12 +2,13 @@ package main
 
 import (
 	"errors"
-	"github.com/samalba/dockerclient"
 	"log"
 	"net"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/samalba/dockerclient"
 )
 
 type DockerManager struct {
@@ -128,7 +129,11 @@ func splitEnv(in []string) (out map[string]string) {
 	out = make(map[string]string, len(in))
 	for _, exp := range in {
 		parts := strings.SplitN(exp, "=", 2)
-		out[strings.Trim(parts[0], " ")] = strings.Trim(parts[1], " ") // trim just in case
+		var value string
+		if len(parts) > 1 {
+			value = strings.Trim(parts[1], " ") // trim just in case
+		}
+		out[strings.Trim(parts[0], " ")] = value
 	}
 	return
 }
@@ -145,7 +150,11 @@ func overrideFromEnv(in *Service, env map[string]string) (out *Service) {
 		}
 
 		if k == "SERVICE_TAGS" {
-			in.Name = strings.Split(v, ",")[0]
+			if len(v) == 0 {
+				in.Name = ""
+			} else {
+				in.Name = strings.Split(v, ",")[0]
+			}
 		}
 
 		if k == "DNSDOCK_IMAGE" || k == "SERVICE_NAME" {
