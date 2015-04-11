@@ -173,7 +173,7 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 }
 
 func (s *DNSServer) queryServices(query string) chan *Service {
-	c := make(chan *Service)
+	c := make(chan *Service, 3)
 
 	go func() {
 		query := strings.Split(strings.ToLower(query), ".")
@@ -184,7 +184,7 @@ func (s *DNSServer) queryServices(query string) chan *Service {
 		for _, service := range s.services {
 			// create the name for this service, skip empty strings
 			test := []string{}
-
+			// todo: add some cache to avoid calculating this every time
 			if len(service.Name) > 0 {
 				test = append(test, strings.Split(service.Name, ".")...)
 			}
