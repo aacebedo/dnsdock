@@ -15,6 +15,7 @@ import (
 type Service struct {
 	Name    string
 	Image   string
+	Hostname string
 	Ip      net.IP
 	Ttl     int
 	Aliases []string
@@ -366,7 +367,10 @@ func (s *DNSServer) queryServices(query string) chan *Service {
 
 			test = append(test, s.config.domain...)
 
-			if isPrefixQuery(query, test) {
+			// check if the query matches the virtual hostname or the explicitly
+			// defined hostname of this service
+			if isPrefixQuery(query, test) ||
+			   isPrefixQuery(query, strings.Split(service.Hostname, ".")) {
 				c <- service
 			}
 
