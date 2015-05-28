@@ -47,6 +47,7 @@ func NewDNSServer(c *Config) *DNSServer {
 
 	mux := dns.NewServeMux()
 	mux.HandleFunc(c.domain[len(c.domain)-1]+".", s.handleRequest)
+	mux.HandleFunc("arpa.", s.handleRequest)
 	mux.HandleFunc(".", s.forwardRequest)
 
 	s.server = &dns.Server{Addr: c.dnsAddr, Net: "udp", Handler: mux}
@@ -130,21 +131,52 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(r)
 
-	// Only care about A requests
+	// Send empty response for empty requests
+	// Only care about A and PTR requests
 	// Send empty response otherwise
-	if len(r.Question) == 0 || r.Question[0].Qtype != dns.TypeA {
+	if len(r.Question) == 0 || (r.Question[0].Qtype != dns.TypeA && r.Question[0].Qtype != dns.TypePTR) {
 		m.Answer = s.createSOA()
 		w.WriteMsg(m)
 		return
 	}
 
 	m.Answer = make([]dns.RR, 0, 2)
-
 	query := r.Question[0].Name
+
 	if query[len(query)-1] == '.' {
 		query = query[:len(query)-1]
 	}
 
+	// Handle PTR requests
+	if r.Question[0].Qtype == dns.TypePTR {
+		for service := range s.queryIp(query) {
+			var ttl int
+			if service.Ttl != -1 {
+				ttl = service.Ttl
+			} else {
+				ttl = s.config.ttl
+			}
+
+			rr := new(dns.PTR)
+			rr.Hdr = dns.RR_Header{
+				Name:   r.Question[0].Name,
+				Rrtype: dns.TypePTR,
+				Class:  dns.ClassINET,
+				Ttl:    uint32(ttl),
+			}
+			rr.Ptr = service.Image + "." + s.config.domain.String() + "."
+
+			m.Answer = append(m.Answer, rr)
+		}
+		if len(m.Answer) == 0 {
+			m.Answer = s.createSOA()
+		}
+
+		w.WriteMsg(m)
+		return
+	}
+
+	// Handle A requests
 	for service := range s.queryServices(query) {
 		rr := new(dns.A)
 
@@ -169,6 +201,27 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	}
 
 	w.WriteMsg(m)
+}
+
+func (s *DNSServer) queryIp(query string) chan *Service {
+	c := make(chan *Service, 3)
+	reversedIp := strings.TrimSuffix(query, ".in-addr.arpa")
+	ip := strings.Join(reverse(strings.Split(reversedIp, ".")), ".")
+
+	go func() {
+		defer s.lock.RUnlock()
+		s.lock.RLock()
+
+		for _, service := range s.services {
+			if service.Ip.String() == ip {
+				c <- service
+			}
+		}
+
+		close(c)
+	}()
+
+	return c
 }
 
 func (s *DNSServer) queryServices(query string) chan *Service {
@@ -266,4 +319,12 @@ func isPrefixQuery(query, name []string) bool {
 		}
 	}
 	return true
+}
+
+func reverse(input []string) []string {
+	if len(input) == 0 {
+		return input
+	}
+
+	return append(reverse(input[1:]), input[0])
 }
