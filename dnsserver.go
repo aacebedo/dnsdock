@@ -132,14 +132,29 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	m.SetReply(r)
 
 	// Send empty response for empty requests
-	// Only care about A and PTR requests
-	// Send empty response otherwise
-	if len(r.Question) == 0 || (r.Question[0].Qtype != dns.TypeA && r.Question[0].Qtype != dns.TypePTR) {
+	if len(r.Question) == 0 {
 		m.Answer = s.createSOA()
 		w.WriteMsg(m)
 		return
 	}
 
+	switch r.Question[0].Qtype {
+	case dns.TypePTR:
+		s.handlePTRRequest(w, r, m)
+	case dns.TypeA:
+		s.handleARequest(w, r, m)
+	default:
+		m.Answer = s.createSOA()
+	}
+
+	if len(m.Answer) == 0 {
+		m.Answer = s.createSOA()
+	}
+
+	w.WriteMsg(m)
+}
+
+func (s *DNSServer) handlePTRRequest(w dns.ResponseWriter, r *dns.Msg, m *dns.Msg) {
 	m.Answer = make([]dns.RR, 0, 2)
 	query := r.Question[0].Name
 
@@ -147,36 +162,35 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		query = query[:len(query)-1]
 	}
 
-	// Handle PTR requests
-	if r.Question[0].Qtype == dns.TypePTR {
-		for service := range s.queryIp(query) {
-			var ttl int
-			if service.Ttl != -1 {
-				ttl = service.Ttl
-			} else {
-				ttl = s.config.ttl
-			}
-
-			rr := new(dns.PTR)
-			rr.Hdr = dns.RR_Header{
-				Name:   r.Question[0].Name,
-				Rrtype: dns.TypePTR,
-				Class:  dns.ClassINET,
-				Ttl:    uint32(ttl),
-			}
-			rr.Ptr = service.Image + "." + s.config.domain.String() + "."
-
-			m.Answer = append(m.Answer, rr)
-		}
-		if len(m.Answer) == 0 {
-			m.Answer = s.createSOA()
+	for service := range s.queryIp(query) {
+		var ttl int
+		if service.Ttl != -1 {
+			ttl = service.Ttl
+		} else {
+			ttl = s.config.ttl
 		}
 
-		w.WriteMsg(m)
-		return
+		rr := new(dns.PTR)
+		rr.Hdr = dns.RR_Header{
+			Name:   r.Question[0].Name,
+			Rrtype: dns.TypePTR,
+			Class:  dns.ClassINET,
+			Ttl:    uint32(ttl),
+		}
+		rr.Ptr = service.Image + "." + s.config.domain.String() + "."
+
+		m.Answer = append(m.Answer, rr)
+	}
+}
+
+func (s *DNSServer) handleARequest(w dns.ResponseWriter, r *dns.Msg, m *dns.Msg) {
+	m.Answer = make([]dns.RR, 0, 2)
+	query := r.Question[0].Name
+
+	if query[len(query)-1] == '.' {
+		query = query[:len(query)-1]
 	}
 
-	// Handle A requests
 	for service := range s.queryServices(query) {
 		rr := new(dns.A)
 
@@ -196,11 +210,6 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		rr.A = service.Ip
 		m.Answer = append(m.Answer, rr)
 	}
-	if len(m.Answer) == 0 {
-		m.Answer = s.createSOA()
-	}
-
-	w.WriteMsg(m)
 }
 
 func (s *DNSServer) queryIp(query string) chan *Service {
