@@ -82,7 +82,7 @@ func TestDNSResponse(t *testing.T) {
 		query    string
 		expected int
 	}{
-		{"1.0.0.127.in-addr.arpa.", 2},
+		{"1.0.0.127.in-addr.arpa.", 4},
 		{"2.0.0.127.in-addr.arpa.", 0},
 	}
 

@@ -117,6 +117,21 @@ func (s *DNSServer) GetAllServices() map[string]Service {
 	return list
 }
 
+func (s *DNSServer) listDomains(service *Service) chan string {
+	c := make(chan string)
+
+	go func() {
+		domain := service.Image + "." + s.config.domain.String() + "."
+
+		c <- domain
+		c <- service.Name + "." + domain
+
+		close(c)
+	}()
+
+	return c
+}
+
 func (s *DNSServer) forwardRequest(w dns.ResponseWriter, r *dns.Msg) {
 	c := new(dns.Client)
 	if in, _, err := c.Exchange(r, s.config.nameserver); err != nil {
@@ -170,16 +185,18 @@ func (s *DNSServer) handlePTRRequest(w dns.ResponseWriter, r *dns.Msg, m *dns.Ms
 			ttl = s.config.ttl
 		}
 
-		rr := new(dns.PTR)
-		rr.Hdr = dns.RR_Header{
-			Name:   r.Question[0].Name,
-			Rrtype: dns.TypePTR,
-			Class:  dns.ClassINET,
-			Ttl:    uint32(ttl),
-		}
-		rr.Ptr = service.Image + "." + s.config.domain.String() + "."
+		for domain := range s.listDomains(service) {
+			rr := new(dns.PTR)
+			rr.Hdr = dns.RR_Header{
+				Name:   r.Question[0].Name,
+				Rrtype: dns.TypePTR,
+				Class:  dns.ClassINET,
+				Ttl:    uint32(ttl),
+			}
+			rr.Ptr = domain
 
-		m.Answer = append(m.Answer, rr)
+			m.Answer = append(m.Answer, rr)
+		}
 	}
 }
 
