@@ -78,6 +78,40 @@ func TestDNSResponse(t *testing.T) {
 		}
 	}
 
+	var ptrInputs = []struct {
+		query    string
+		expected int
+	}{
+		{"1.0.0.127.in-addr.arpa.", 2},
+		{"2.0.0.127.in-addr.arpa.", 0},
+	}
+
+	for _, input := range ptrInputs {
+		t.Log(input.query)
+		m := new(dns.Msg)
+		m.Id = dns.Id()
+		m.RecursionDesired = true
+		m.Question = []dns.Question{
+			dns.Question{input.query, dns.TypePTR, dns.ClassINET},
+		}
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, TestAddr)
+		if err != nil {
+			t.Error("Error response from the server", err)
+			break
+		}
+		if len(in.Answer) == 0 {
+			t.Error(input, "No SOA anwer")
+		}
+		if _, ok := in.Answer[0].(*dns.SOA); ok {
+			if input.expected != 0 {
+				t.Error(input, "Expected:", input.expected, " Got:", 0)
+			}
+		} else if len(in.Answer) != input.expected {
+			t.Error(input, "Expected:", input.expected, " Got:", len(in.Answer))
+		}
+	}
+
 	// // This test is slow and pointless
 	// server.Stop()
 	//
