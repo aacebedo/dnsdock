@@ -121,10 +121,15 @@ func (s *DNSServer) listDomains(service *Service) chan string {
 	c := make(chan string)
 
 	go func() {
-		domain := service.Image + "." + s.config.domain.String() + "."
 
-		c <- domain
-		c <- service.Name + "." + domain
+		if service.Image == "" {
+			c <- service.Name + "." + s.config.domain.String() + "."
+		} else {
+			domain := service.Image + "." + s.config.domain.String() + "."
+
+			c <- domain
+			c <- service.Name + "." + domain
+		}
 
 		close(c)
 	}()
