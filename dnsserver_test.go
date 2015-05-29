@@ -40,13 +40,14 @@ func TestDNSResponse(t *testing.T) {
 
 	server.AddService("foo", Service{Name: "foo", Image: "bar", Ip: net.ParseIP("127.0.0.1")})
 	server.AddService("baz", Service{Name: "baz", Image: "bar", Ip: net.ParseIP("127.0.0.1"), Ttl: -1})
+	server.AddService("biz", Service{Name: "hey", Image: "", Ip: net.ParseIP("127.0.0.4")})
 
 	var inputs = []struct {
 		query    string
 		expected int
 	}{
-		{"docker.", 2},
-		{"*.docker.", 2},
+		{"docker.", 3},
+		{"*.docker.", 3},
 		{"bar.docker.", 2},
 		{"foo.docker.", 0},
 		{"baz.bar.docker.", 1},
@@ -59,6 +60,41 @@ func TestDNSResponse(t *testing.T) {
 		m.RecursionDesired = true
 		m.Question = []dns.Question{
 			dns.Question{input.query, dns.TypeA, dns.ClassINET},
+		}
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, TestAddr)
+		if err != nil {
+			t.Error("Error response from the server", err)
+			break
+		}
+		if len(in.Answer) == 0 {
+			t.Error(input, "No SOA anwer")
+		}
+		if _, ok := in.Answer[0].(*dns.SOA); ok {
+			if input.expected != 0 {
+				t.Error(input, "Expected:", input.expected, " Got:", 0)
+			}
+		} else if len(in.Answer) != input.expected {
+			t.Error(input, "Expected:", input.expected, " Got:", len(in.Answer))
+		}
+	}
+
+	var ptrInputs = []struct {
+		query    string
+		expected int
+	}{
+		{"1.0.0.127.in-addr.arpa.", 4}, // two services match with two domains each
+		{"4.0.0.127.in-addr.arpa.", 1}, // only one service with a single domain
+		{"2.0.0.127.in-addr.arpa.", 0}, // no match
+	}
+
+	for _, input := range ptrInputs {
+		t.Log(input.query)
+		m := new(dns.Msg)
+		m.Id = dns.Id()
+		m.RecursionDesired = true
+		m.Question = []dns.Question{
+			dns.Question{input.query, dns.TypePTR, dns.ClassINET},
 		}
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, TestAddr)
