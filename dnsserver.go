@@ -132,6 +132,10 @@ func (s *DNSServer) listDomains(service *Service) chan string {
 			c <- service.Name + "." + domain
 		}
 
+		for _, alias := range service.Aliases {
+			c <- alias + "."
+		}
+
 		close(c)
 	}()
 
