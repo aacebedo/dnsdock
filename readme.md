@@ -123,12 +123,18 @@ curl http://dnsdock.docker/set/ttl -X PUT --data-ascii '10'
 
 If you wish to fine tune the DNS response addresses you can define specific environment variables during container startup. This overrides the default matching scheme from container and image name.
 
-Supported ENV variables are `DNSDOCK_NAME`, `DNSDOCK_IMAGE`, `DNSDOCK_TTL`.
+Supported ENV variables are `DNSDOCK_NAME`, `DNSDOCK_IMAGE`, `DNSDOCK_ALIAS`, `DNSDOCK_TTL`.
 
 ```
 docker run -e DNSDOCK_NAME=master -e DNSDOCK_IMAGE=mysql -e DNSDOCK_TTL=10 \
            --name mymysql mysqlimage
 # matches master.mysql.docker
+```
+
+```
+docker run -e DNSDOCK_ALIAS=db.docker,sql.docker -e DNSDOCK_TTL=10 \
+           --name mymysql mysqlimage
+# matches db.docker and sql.docker
 ```
 
 Service metadata syntax by [progrium/registrator](https://github.com/progrium/registrator) is also supported.
