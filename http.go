@@ -154,6 +154,12 @@ func (s *HTTPServer) updateService(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	if image, ok := input["alias"]; ok {
+		if value, ok := image.([]string); ok {
+			service.Aliases = value
+		}
+	}
+
 	// todo: this probably needs to be moved. consider stop event in the
 	// middle of sending PATCH. container would not be removed.
 	s.list.AddService(id, service)

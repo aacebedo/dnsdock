@@ -63,6 +63,7 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 	}
 
 	service := NewService()
+	service.Aliases = make([]string, 0)
 
 	service.Image = getImageName(inspect.Config.Image)
 	if imageNameIsSHA(service.Image, inspect.Image) {
@@ -143,6 +144,10 @@ func overrideFromEnv(in *Service, env map[string]string) (out *Service) {
 	for k, v := range env {
 		if k == "DNSDOCK_IGNORE" || k == "SERVICE_IGNORE" {
 			return nil
+		}
+
+		if k == "DNSDOCK_ALIAS" {
+			in.Aliases = strings.Split(v, ",")
 		}
 
 		if k == "DNSDOCK_NAME" {

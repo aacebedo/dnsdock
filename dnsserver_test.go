@@ -41,16 +41,18 @@ func TestDNSResponse(t *testing.T) {
 	server.AddService("foo", Service{Name: "foo", Image: "bar", Ip: net.ParseIP("127.0.0.1")})
 	server.AddService("baz", Service{Name: "baz", Image: "bar", Ip: net.ParseIP("127.0.0.1"), Ttl: -1})
 	server.AddService("biz", Service{Name: "hey", Image: "", Ip: net.ParseIP("127.0.0.4")})
+	server.AddService("joe", Service{Name: "joe", Image: "", Ip: net.ParseIP("127.0.0.5"), Aliases: []string{"lala.docker"}})
 
 	var inputs = []struct {
 		query    string
 		expected int
 	}{
-		{"docker.", 3},
-		{"*.docker.", 3},
+		{"docker.", 5},
+		{"*.docker.", 5},
 		{"bar.docker.", 2},
 		{"foo.docker.", 0},
 		{"baz.bar.docker.", 1},
+		{"joe.docker.", 1},
 	}
 
 	for _, input := range inputs {

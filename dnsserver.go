@@ -13,10 +13,11 @@ import (
 )
 
 type Service struct {
-	Name  string
-	Image string
-	Ip    net.IP
-	Ttl   int
+	Name    string
+	Image   string
+	Ip      net.IP
+	Ttl     int
+	Aliases []string
 }
 
 func NewService() (s *Service) {
@@ -129,6 +130,10 @@ func (s *DNSServer) listDomains(service *Service) chan string {
 
 			c <- domain
 			c <- service.Name + "." + domain
+		}
+
+		for _, alias := range service.Aliases {
+			c <- alias + "."
 		}
 
 		close(c)
@@ -280,6 +285,13 @@ func (s *DNSServer) queryServices(query string) chan *Service {
 
 			if isPrefixQuery(query, test) {
 				c <- service
+			}
+
+			// check aliases
+			for _, alias := range service.Aliases {
+				if isPrefixQuery(query, strings.Split(alias, ".")) {
+					c <- service
+				}
 			}
 		}
 
