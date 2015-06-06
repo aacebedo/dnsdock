@@ -59,6 +59,26 @@ redis1.redis.docker.		0	IN	A	172.17.42.2
 redis1.*.docker.		0	IN	A	172.17.42.2
 ```
 
+#### Docker Compose Usage
+
+Here's a simple example for the `docker-compose.yml` file
+
+    dnsdock:
+        image: tonistiigi/dnsdock
+        volumes:
+            - /var/run/docker.sock:/run/docker.sock
+        ports:
+            - 172.17.42.1:53:53/udp
+    serviceb:
+        image: username/serviceb
+        dns: 172.17.42.1
+
+    servicea:
+        image: username/servicea
+        dns: 172.17.42.1
+
+Services can access each other with: `<container-name>.<image-name>.docker` hostname. You can check `<container-name>` and `<image-name>` after `docker-compose up` in dnsdock logs.
+
 #### Setup
 
 DNS listening port needs to be binded to the *docker0* inferface so that its available to all containers. To avoid this IP changing during host restart add it the docker default options. Open file `/etc/default/docker` and add `-bip=172.17.42.1/24 -dns 172.17.42.1` to `DOCKER_OPTS` variable. Restart docker daemon after you have done that (`sudo service docker restart`).
