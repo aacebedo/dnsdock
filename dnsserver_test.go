@@ -41,7 +41,7 @@ func TestDNSResponse(t *testing.T) {
 	server.AddService("foo", Service{Name: "foo", Image: "bar", Ip: net.ParseIP("127.0.0.1")})
 	server.AddService("baz", Service{Name: "baz", Image: "bar", Ip: net.ParseIP("127.0.0.1"), Ttl: -1})
 	server.AddService("biz", Service{Name: "hey", Image: "", Ip: net.ParseIP("127.0.0.4")})
-	server.AddService("joe", Service{Name: "joe", Image: "", Ip: net.ParseIP("127.0.0.5"), Aliases: []string{"lala.docker"}})
+	server.AddService("joe", Service{Name: "joe", Image: "", Ip: net.ParseIP("127.0.0.5"), Aliases: []string{"lala.docker", "super-alias", "alias.domain"}})
 
 	var inputs = []struct {
 		query    string
@@ -53,6 +53,8 @@ func TestDNSResponse(t *testing.T) {
 		{"foo.docker.", 0},
 		{"baz.bar.docker.", 1},
 		{"joe.docker.", 1},
+		{"super-alias.", 1},
+		{"alias.domain.", 1},
 	}
 
 	for _, input := range inputs {
@@ -86,6 +88,7 @@ func TestDNSResponse(t *testing.T) {
 		expected int
 	}{
 		{"1.0.0.127.in-addr.arpa.", 4}, // two services match with two domains each
+		{"5.0.0.127.in-addr.arpa.", 4}, // one service match with three aliases
 		{"4.0.0.127.in-addr.arpa.", 1}, // only one service with a single domain
 		{"2.0.0.127.in-addr.arpa.", 0}, // no match
 	}
