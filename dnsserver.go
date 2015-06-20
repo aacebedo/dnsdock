@@ -49,7 +49,7 @@ func NewDNSServer(c *Config) *DNSServer {
 	mux := dns.NewServeMux()
 	mux.HandleFunc(c.domain[len(c.domain)-1]+".", s.handleRequest)
 	mux.HandleFunc("arpa.", s.handleRequest)
-	mux.HandleFunc(".", s.forwardRequest)
+	mux.HandleFunc(".", s.handleOrForward)
 
 	s.server = &dns.Server{Addr: c.dnsAddr, Net: "udp", Handler: mux}
 
@@ -142,7 +142,16 @@ func (s *DNSServer) listDomains(service *Service) chan string {
 	return c
 }
 
-func (s *DNSServer) forwardRequest(w dns.ResponseWriter, r *dns.Msg) {
+func (s *DNSServer) handleOrForward(w dns.ResponseWriter, r *dns.Msg) {
+	m := s.doHandle(w, r)
+
+	// We could build a response, let's return it
+	if len(m.Answer) != 0 {
+		w.WriteMsg(m)
+		return
+	}
+
+	// Otherwise just forward the request to another server
 	c := new(dns.Client)
 	if in, _, err := c.Exchange(r, s.config.nameserver); err != nil {
 		log.Print(err)
@@ -153,25 +162,9 @@ func (s *DNSServer) forwardRequest(w dns.ResponseWriter, r *dns.Msg) {
 }
 
 func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
-	m := new(dns.Msg)
-	m.SetReply(r)
+	m := s.doHandle(w, r)
 
-	// Send empty response for empty requests
-	if len(r.Question) == 0 {
-		m.Answer = s.createSOA()
-		w.WriteMsg(m)
-		return
-	}
-
-	switch r.Question[0].Qtype {
-	case dns.TypePTR:
-		s.handlePTRRequest(w, r, m)
-	case dns.TypeA:
-		s.handleARequest(w, r, m)
-	default:
-		m.Answer = s.createSOA()
-	}
-
+	// We could NOT build a response
 	if len(m.Answer) == 0 {
 		m.Answer = s.createSOA()
 	}
@@ -179,7 +172,29 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	w.WriteMsg(m)
 }
 
-func (s *DNSServer) handlePTRRequest(w dns.ResponseWriter, r *dns.Msg, m *dns.Msg) {
+func (s *DNSServer) doHandle(w dns.ResponseWriter, r *dns.Msg) *dns.Msg {
+	m := new(dns.Msg)
+	m.SetReply(r)
+
+	// Send empty response for empty requests
+	if len(r.Question) == 0 {
+		m.Answer = s.createSOA()
+		return m
+	}
+
+	switch r.Question[0].Qtype {
+	case dns.TypePTR:
+		s.handlePTRRequest(r, m)
+	case dns.TypeA:
+		s.handleARequest(r, m)
+	default:
+		m.Answer = s.createSOA()
+	}
+
+	return m
+}
+
+func (s *DNSServer) handlePTRRequest(r *dns.Msg, m *dns.Msg) {
 	m.Answer = make([]dns.RR, 0, 2)
 	query := r.Question[0].Name
 
@@ -210,7 +225,7 @@ func (s *DNSServer) handlePTRRequest(w dns.ResponseWriter, r *dns.Msg, m *dns.Ms
 	}
 }
 
-func (s *DNSServer) handleARequest(w dns.ResponseWriter, r *dns.Msg, m *dns.Msg) {
+func (s *DNSServer) handleARequest(r *dns.Msg, m *dns.Msg) {
 	m.Answer = make([]dns.RR, 0, 2)
 	query := r.Question[0].Name
 
