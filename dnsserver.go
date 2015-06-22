@@ -165,8 +165,9 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	m := s.doHandle(w, r)
 
 	// We could NOT build a response
-	if len(m.Answer) == 0 {
-		m.Answer = s.createSOA()
+	if len(m.Answer) == 0 && len(m.Ns) == 0 {
+		m.Ns = s.createSOA()
+		m.SetRcode(r, dns.RcodeNameError)
 	}
 
 	w.WriteMsg(m)
@@ -178,7 +179,7 @@ func (s *DNSServer) doHandle(w dns.ResponseWriter, r *dns.Msg) *dns.Msg {
 
 	// Send empty response for empty requests
 	if len(r.Question) == 0 {
-		m.Answer = s.createSOA()
+		m.Ns = s.createSOA()
 		return m
 	}
 
@@ -187,8 +188,11 @@ func (s *DNSServer) doHandle(w dns.ResponseWriter, r *dns.Msg) *dns.Msg {
 		s.handlePTRRequest(r, m)
 	case dns.TypeA:
 		s.handleARequest(r, m)
-	default:
+	case dns.TypeSOA:
 		m.Answer = s.createSOA()
+	default:
+		m.Ns = s.createSOA()
+		m.SetRcode(r, dns.RcodeNotImplemented)
 	}
 
 	return m
@@ -348,10 +352,15 @@ func (s *DNSServer) getExpandedID(in string) (out string) {
 // for a long time. The other defaults left as is(skydns source) because they
 // do not have an use case in this situation.
 func (s *DNSServer) createSOA() []dns.RR {
-	dom := dns.Fqdn(s.config.domain[len(s.config.domain)-1] + ".")
-	soa := &dns.SOA{Hdr: dns.RR_Header{Name: dom, Rrtype: dns.TypeSOA, Class: dns.ClassINET, Ttl: uint32(s.config.ttl)},
-		Ns:      "master." + dom,
-		Mbox:    "hostmaster." + dom,
+	dom := dns.Fqdn(s.config.domain.String() + ".")
+	soa := &dns.SOA{
+		Hdr: dns.RR_Header{
+			Name: dom,
+			Rrtype: dns.TypeSOA,
+			Class: dns.ClassINET,
+			Ttl: uint32(s.config.ttl)},
+		Ns:      "dnsdock." + dom,
+		Mbox:    "dnsdock.dnsdock." + dom,
 		Serial:  uint32(time.Now().Truncate(time.Hour).Unix()),
 		Refresh: 28800,
 		Retry:   7200,
