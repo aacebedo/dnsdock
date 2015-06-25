@@ -355,10 +355,10 @@ func (s *DNSServer) createSOA() []dns.RR {
 	dom := dns.Fqdn(s.config.domain.String() + ".")
 	soa := &dns.SOA{
 		Hdr: dns.RR_Header{
-			Name: dom,
+			Name:   dom,
 			Rrtype: dns.TypeSOA,
-			Class: dns.ClassINET,
-			Ttl: uint32(s.config.ttl)},
+			Class:  dns.ClassINET,
+			Ttl:    uint32(s.config.ttl)},
 		Ns:      "dnsdock." + dom,
 		Mbox:    "dnsdock.dnsdock." + dom,
 		Serial:  uint32(time.Now().Truncate(time.Hour).Unix()),
