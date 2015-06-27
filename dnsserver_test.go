@@ -72,13 +72,11 @@ func TestDNSResponse(t *testing.T) {
 			break
 		}
 		if len(in.Answer) == 0 {
-			t.Error(input, "No SOA anwer")
-		}
-		if _, ok := in.Answer[0].(*dns.SOA); ok {
-			if input.expected != 0 {
-				t.Error(input, "Expected:", input.expected, " Got:", 0)
+			if _, ok := in.Ns[0].(*dns.SOA); !ok {
+				t.Error(input, "No SOA anwer")
 			}
-		} else if len(in.Answer) != input.expected {
+		}
+		if len(in.Answer) != input.expected {
 			t.Error(input, "Expected:", input.expected, " Got:", len(in.Answer))
 		}
 	}
@@ -108,13 +106,11 @@ func TestDNSResponse(t *testing.T) {
 			break
 		}
 		if len(in.Answer) == 0 {
-			t.Error(input, "No SOA anwer")
-		}
-		if _, ok := in.Answer[0].(*dns.SOA); ok {
-			if input.expected != 0 {
-				t.Error(input, "Expected:", input.expected, " Got:", 0)
+			if _, ok := in.Ns[0].(*dns.SOA); !ok {
+				t.Error(input, "No SOA anwer")
 			}
-		} else if len(in.Answer) != input.expected {
+		}
+		if len(in.Answer) != input.expected {
 			t.Error(input, "Expected:", input.expected, " Got:", len(in.Answer))
 		}
 	}
