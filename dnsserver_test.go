@@ -55,7 +55,7 @@ func TestDNSResponse(t *testing.T) {
 		{"2.0.0.127.in-addr.arpa.", 0, "PTR"}, // no match
 	}
 
-	c := new(dns.Client)
+  c := new(dns.Client)
   for _, input := range inputs {
     t.Log("Query", input.query, input.qType)
     qType := dns.StringToType[input.qType]
