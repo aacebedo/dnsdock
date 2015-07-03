@@ -208,7 +208,7 @@ func (s *DNSServer) handleMXRequest(r *dns.Msg, m *dns.Msg) {
 		query = query[:len(query)-1]
 	}
 
-	for service := range s.queryIp(query) {
+	for service := range s.queryServices(query) {
 		rr := new(dns.MX)
 
 		var ttl int
