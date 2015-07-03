@@ -29,7 +29,7 @@ func TestDNSResponse(t *testing.T) {
 	var inputs = []struct {
 		query    string
 		expected int
-    qType    string
+		qType    string
 	}{
 		{"google.com.", -1, "A"},
 		{"google.com.", -1, "MX"},
@@ -55,39 +55,39 @@ func TestDNSResponse(t *testing.T) {
 		{"2.0.0.127.in-addr.arpa.", 0, "PTR"}, // no match
 	}
 
-  c := new(dns.Client)
-  for _, input := range inputs {
-    t.Log("Query", input.query, input.qType)
-    qType := dns.StringToType[input.qType]
+	c := new(dns.Client)
+	for _, input := range inputs {
+		t.Log("Query", input.query, input.qType)
+		qType := dns.StringToType[input.qType]
 
-    m := new(dns.Msg)
-    m.SetQuestion(input.query, qType)
-    r, _, err := c.Exchange(m, TestAddr)
+		m := new(dns.Msg)
+		m.SetQuestion(input.query, qType)
+		r, _, err := c.Exchange(m, TestAddr)
 
-    if err != nil {
-      t.Error("Error response from the server", err)
-      break
-    }
+		if err != nil {
+			t.Error("Error response from the server", err)
+			break
+		}
 
-    if len(r.Answer) == 0 {
-      if _, ok := r.Ns[0].(*dns.SOA); !ok {
-        t.Error(input, "No SOA anwer")
-      }
-    }
+		if len(r.Answer) == 0 {
+			if _, ok := r.Ns[0].(*dns.SOA); !ok {
+				t.Error(input, "No SOA anwer")
+			}
+		}
 
-    if input.expected > 0 && len(r.Answer) != input.expected {
-      t.Error(input, "Expected:", input.expected, " Got:", len(r.Answer))
-    }
+		if input.expected > 0 && len(r.Answer) != input.expected {
+			t.Error(input, "Expected:", input.expected, " Got:", len(r.Answer))
+		}
 
-    for _, a := range r.Answer {
-      rrType := dns.Type(a.Header().Rrtype).String()
-      if input.qType != rrType {
-        t.Error("Did not receive ", input.qType, " resource record")
-      } else {
-        t.Log("Received expeced response RR type", rrType)
-      }
-    }
-  }
+		for _, a := range r.Answer {
+			rrType := dns.Type(a.Header().Rrtype).String()
+			if input.qType != rrType {
+				t.Error("Did not receive ", input.qType, " resource record")
+			} else {
+				t.Log("Received expeced response RR type", rrType)
+			}
+		}
+	}
 }
 
 func TestServiceManagement(t *testing.T) {
