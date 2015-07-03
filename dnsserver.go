@@ -186,6 +186,8 @@ func (s *DNSServer) doHandle(w dns.ResponseWriter, r *dns.Msg) *dns.Msg {
 	switch r.Question[0].Qtype {
 	case dns.TypePTR:
 		s.handlePTRRequest(r, m)
+	case dns.TypeMX:
+		s.handleMXRequest(r, m)
 	case dns.TypeA:
 		s.handleARequest(r, m)
 	case dns.TypeSOA:
@@ -196,6 +198,35 @@ func (s *DNSServer) doHandle(w dns.ResponseWriter, r *dns.Msg) *dns.Msg {
 	}
 
 	return m
+}
+
+func (s *DNSServer) handleMXRequest(r *dns.Msg, m *dns.Msg) {
+	m.Answer = make([]dns.RR, 0, 2)
+	query := r.Question[0].Name
+
+	if query[len(query)-1] == '.' {
+		query = query[:len(query)-1]
+	}
+
+	for service := range s.queryServices(query) {
+		rr := new(dns.MX)
+
+		var ttl int
+		if service.Ttl != -1 {
+			ttl = service.Ttl
+		} else {
+			ttl = s.config.ttl
+		}
+
+		rr.Hdr = dns.RR_Header{
+			Name:   r.Question[0].Name,
+			Rrtype: dns.TypeMX,
+			Class:  dns.ClassINET,
+			Ttl:    uint32(ttl),
+		}
+		rr.Mx = r.Question[0].Name
+		m.Answer = append(m.Answer, rr)
+	}
 }
 
 func (s *DNSServer) handlePTRRequest(r *dns.Msg, m *dns.Msg) {
