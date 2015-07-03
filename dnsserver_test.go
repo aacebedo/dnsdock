@@ -21,23 +21,6 @@ func TestDNSResponse(t *testing.T) {
 	// Allow some time for server to start
 	time.Sleep(250 * time.Millisecond)
 
-	m := new(dns.Msg)
-	m.Id = dns.Id()
-	m.RecursionDesired = true
-	m.Question = []dns.Question{
-		dns.Question{"google.com.", dns.TypeA, dns.ClassINET},
-	}
-	c := new(dns.Client)
-	in, _, err := c.Exchange(m, TestAddr)
-
-	if err != nil {
-		t.Error("Error response from the server", err)
-	}
-
-	if len(in.Answer) < 1 {
-		t.Error("Could not get A response for google.com")
-	}
-
 	server.AddService("foo", Service{Name: "foo", Image: "bar", Ip: net.ParseIP("127.0.0.1")})
 	server.AddService("baz", Service{Name: "baz", Image: "bar", Ip: net.ParseIP("127.0.0.1"), Ttl: -1})
 	server.AddService("biz", Service{Name: "hey", Image: "", Ip: net.ParseIP("127.0.0.4")})
@@ -46,84 +29,65 @@ func TestDNSResponse(t *testing.T) {
 	var inputs = []struct {
 		query    string
 		expected int
+    qType    string
 	}{
-		{"docker.", 5},
-		{"*.docker.", 5},
-		{"bar.docker.", 2},
-		{"foo.docker.", 0},
-		{"baz.bar.docker.", 1},
-		{"joe.docker.", 1},
-		{"super-alias.", 1},
-		{"alias.domain.", 1},
+		{"google.com.", -1, "A"},
+		{"google.com.", -1, "MX"},
+		{"docker.", 5, "A"},
+		{"docker.", 5, "MX"},
+		{"*.docker.", 5, "A"},
+		{"*.docker.", 5, "MX"},
+		{"bar.docker.", 2, "A"},
+		{"bar.docker.", 2, "MX"},
+		{"foo.docker.", 0, "A"},
+		{"foo.docker.", 0, "MX"},
+		{"baz.bar.docker.", 1, "A"},
+		{"baz.bar.docker.", 1, "MX"},
+		{"joe.docker.", 1, "A"},
+		{"joe.docker.", 1, "MX"},
+		{"super-alias.", 1, "A"},
+		{"super-alias.", 1, "MX"},
+		{"alias.domain.", 1, "A"},
+		{"alias.domain.", 1, "MX"},
+		{"1.0.0.127.in-addr.arpa.", 4, "PTR"}, // two services match with two domains each
+		{"5.0.0.127.in-addr.arpa.", 4, "PTR"}, // one service match with three aliases
+		{"4.0.0.127.in-addr.arpa.", 1, "PTR"}, // only one service with a single domain
+		{"2.0.0.127.in-addr.arpa.", 0, "PTR"}, // no match
 	}
 
-	for _, input := range inputs {
-		t.Log(input.query)
-		m := new(dns.Msg)
-		m.Id = dns.Id()
-		m.RecursionDesired = true
-		m.Question = []dns.Question{
-			dns.Question{input.query, dns.TypeA, dns.ClassINET},
-		}
-		c := new(dns.Client)
-		in, _, err := c.Exchange(m, TestAddr)
-		if err != nil {
-			t.Error("Error response from the server", err)
-			break
-		}
-		if len(in.Answer) == 0 {
-			if _, ok := in.Ns[0].(*dns.SOA); !ok {
-				t.Error(input, "No SOA anwer")
-			}
-		}
-		if len(in.Answer) != input.expected {
-			t.Error(input, "Expected:", input.expected, " Got:", len(in.Answer))
-		}
-	}
+	c := new(dns.Client)
+  for _, input := range inputs {
+    t.Log("Query", input.query, input.qType)
+    qType := dns.StringToType[input.qType]
 
-	var ptrInputs = []struct {
-		query    string
-		expected int
-	}{
-		{"1.0.0.127.in-addr.arpa.", 4}, // two services match with two domains each
-		{"5.0.0.127.in-addr.arpa.", 4}, // one service match with three aliases
-		{"4.0.0.127.in-addr.arpa.", 1}, // only one service with a single domain
-		{"2.0.0.127.in-addr.arpa.", 0}, // no match
-	}
+    m := new(dns.Msg)
+    m.SetQuestion(input.query, qType)
+    r, _, err := c.Exchange(m, TestAddr)
 
-	for _, input := range ptrInputs {
-		t.Log(input.query)
-		m := new(dns.Msg)
-		m.Id = dns.Id()
-		m.RecursionDesired = true
-		m.Question = []dns.Question{
-			dns.Question{input.query, dns.TypePTR, dns.ClassINET},
-		}
-		c := new(dns.Client)
-		in, _, err := c.Exchange(m, TestAddr)
-		if err != nil {
-			t.Error("Error response from the server", err)
-			break
-		}
-		if len(in.Answer) == 0 {
-			if _, ok := in.Ns[0].(*dns.SOA); !ok {
-				t.Error(input, "No SOA anwer")
-			}
-		}
-		if len(in.Answer) != input.expected {
-			t.Error(input, "Expected:", input.expected, " Got:", len(in.Answer))
-		}
-	}
+    if err != nil {
+      t.Error("Error response from the server", err)
+      break
+    }
 
-	// // This test is slow and pointless
-	// server.Stop()
-	//
-	// c = new(dns.Client)
-	// _, _, err = c.Exchange(m, TEST_ADDR)
-	//
-	// if err == nil {
-	// 	t.Error("Server still running but should be shut down.")
-	// }
+    if len(r.Answer) == 0 {
+      if _, ok := r.Ns[0].(*dns.SOA); !ok {
+        t.Error(input, "No SOA anwer")
+      }
+    }
+
+    if input.expected > 0 && len(r.Answer) != input.expected {
+      t.Error(input, "Expected:", input.expected, " Got:", len(r.Answer))
+    }
+
+    for _, a := range r.Answer {
+      rrType := dns.Type(a.Header().Rrtype).String()
+      if input.qType != rrType {
+        t.Error("Did not receive ", input.qType, " resource record")
+      } else {
+        t.Log("Received expeced response RR type", rrType)
+      }
+    }
+  }
 }
 
 func TestServiceManagement(t *testing.T) {
