@@ -14,7 +14,7 @@ func TestServiceRequests(t *testing.T) {
 	config := NewConfig()
 	config.httpAddr = TestAddr
 
-	server := NewHTTPServer(config, NewDNSServer(config))
+	server := NewHTTPServer(config, NewDNSServer(config), nil)
 	go server.Start()
 
 	// Allow some time for server to start

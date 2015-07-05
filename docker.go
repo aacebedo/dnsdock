@@ -36,7 +36,7 @@ func (d *DockerManager) Start() error {
 		}
 	}()
 
-	containers, err := d.docker.ListContainers(false, false, "")
+	containers, err := d.listContainers()
 	if err != nil {
 		return errors.New("Error connecting to docker socket: " + err.Error())
 	}
@@ -55,6 +55,10 @@ func (d *DockerManager) Start() error {
 
 func (d *DockerManager) Stop() {
 	d.docker.StopAllMonitorEvents()
+}
+
+func (d *DockerManager) listContainers() ([]dockerclient.Container, error) {
+	return d.docker.ListContainers(false, false, "")
 }
 
 func (d *DockerManager) getService(id string) (*Service, error) {
