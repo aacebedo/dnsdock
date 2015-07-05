@@ -58,7 +58,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		tlsConfig := &tls.Config{
+		tlsConfig = &tls.Config{
 			MinVersion:   tls.VersionTLS12,
 			Certificates: []tls.Certificate{clientCert},
 		}
