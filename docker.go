@@ -36,11 +36,17 @@ func (d *DockerManager) Start() error {
 			// assume for now that an event error necessarily
 			// requires a re-establishment of the monitor stream
 			d.docker.StopAllMonitorEvents()
-			// we may miss an event or two :(
+
 			d.docker.StartMonitorEvents(d.eventCallback, ec)
+
+			d.Update() // catch up with anything we missed
 		}
 	}()
 
+	return d.Update()
+}
+
+func (d *DockerManager) Update() error {
 	containers, err := d.docker.ListContainers(false, false, "")
 	if err != nil {
 		return errors.New("Error connecting to docker socket: " + err.Error())
