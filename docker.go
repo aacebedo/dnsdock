@@ -33,6 +33,11 @@ func (d *DockerManager) Start() error {
 	go func() {
 		for {
 			log.Println("Event error", <-ec)
+			// assume for now that an event error necessarily
+			// requires a re-establishment of the monitor stream
+			d.docker.StopAllMonitorEvents()
+			// we may miss an event or two :(
+			d.docker.StartMonitorEvents(d.eventCallback, ec)
 		}
 	}()
 
