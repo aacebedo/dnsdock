@@ -23,7 +23,7 @@ func main() {
 	domain := flag.String("domain", config.domain.String(), "Domain that is appended to all requests")
 	environment := flag.String("environment", "", "Optional context before domain suffix")
 	flag.StringVar(&config.dockerHost, "docker", config.dockerHost, "Path to the docker socket")
-	flag.BoolVar(&config.tlsVerify, "tlsverify", true, "Enable mTLS when connecting to docker")
+	flag.BoolVar(&config.tlsVerify, "tlsverify", false, "Enable mTLS when connecting to docker")
 	flag.StringVar(&config.tlsCaCert, "tlscacert", config.tlsCaCert, "Path to CA certificate")
 	flag.StringVar(&config.tlsCert, "tlscert", config.tlsCert, "Path to client certificate")
 	flag.StringVar(&config.tlsKey, "tlskey", config.tlsKey, "Path to client certificate private key")
