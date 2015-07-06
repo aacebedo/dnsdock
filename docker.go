@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"errors"
 	"log"
 	"net"
@@ -17,8 +18,8 @@ type DockerManager struct {
 	docker *dockerclient.DockerClient
 }
 
-func NewDockerManager(c *Config, list ServiceListProvider) (*DockerManager, error) {
-	docker, err := dockerclient.NewDockerClient(c.dockerHost, nil)
+func NewDockerManager(c *Config, list ServiceListProvider, tlsConfig *tls.Config) (*DockerManager, error) {
+	docker, err := dockerclient.NewDockerClient(c.dockerHost, tlsConfig)
 	if err != nil {
 		return nil, err
 	}

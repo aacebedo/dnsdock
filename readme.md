@@ -85,6 +85,10 @@ Additional configuration options to dnsdock command:
 -nameserver="8.8.8.8:53": DNS server for unmatched requests
 -ttl=0: TTL for matched requests
 -verbose=true: Verbose output
+-tlsverify=false: enable mutual TLS between dnsdock and Docker
+-tlscacert="$HOME/.docker/ca.pem": Path to CA certificate
+-tlscert="$HOME/.docker/cert.pem": Path to client certificate
+-tlskey="$HOME/.docker/key.pem": Path to client certificate private key
 ```
 
 If you also want to let the host machine discover the containers add `nameserver 172.17.42.1` to your `/etc/resolv.conf`.
@@ -93,6 +97,23 @@ If you also want to let the host machine discover the containers add `nameserver
 #### SELinux and Fedora / RHEL / CentOS
 
 Mounting docker daemon's unix socket may not work with default configuration on these platforms. Please use [selinux-dockersock](https://github.com/dpw/selinux-dockersock) to fix this. More information in [#11](https://github.com/tonistiigi/dnsdock/issues/11).
+
+#### TLS Authentication
+
+Instead of connecting to the Docker daemon's UNIX socket, you may prefer to connect via a TLS-protected TCP socket (for example, if you are running Swarm). The `-tlsverify` option enables TLS, and the three additional options (`-tlscacert`, `-tlscert` and `-tlskey`) must also be specified. Alternatively, you may set the `DOCKER_TLS_VERIFY` environment variable to a non-empty value and the `DOCKER_CERTS` to a directory containing files named `ca.pem`, `cert.pem` and `key.pem`.
+
+You may build this into your own container with this example Dockerfile:
+
+```
+FROM tonistiigi/dnsdock
+
+ENV DOCKER_TLS_VERIFY 1
+ENV DOCKER_CERTS /certs
+
+CMD ["-docker=tcp://172.17.42.1:2376"]
+```
+
+Use a volume (`-v /path/to/certs:/certs`) to give the container access to the certificate files, or build the certificates into the image if you have access to a secure private image registry.
 
 #### HTTP Server
 
