@@ -47,7 +47,10 @@ func (d *DockerManager) Start() error {
 			log.Println(err)
 			continue
 		}
-		d.list.AddService(container.Id, *service)
+		s, err := d.list.GetService(container.Id)
+		if err != nil || !s.Manual {
+			d.list.AddService(container.Id, *service)
+		}
 	}
 
 	return nil
@@ -89,10 +92,14 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 func (d *DockerManager) eventCallback(event *dockerclient.Event, ec chan error, args ...interface{}) {
 	//log.Printf("Received event: %#v %#v\n", *event, args)
 
+	s, s_err := d.list.GetService(event.Id)
+
 	switch event.Status {
 	case "die", "stop", "kill":
 		// Errors can be ignored here because there can be no-op events.
-		d.list.RemoveService(event.Id)
+		if s_err == nil && !s.Manual {
+			d.list.RemoveService(event.Id)
+		}
 	case "start", "restart":
 		service, err := d.getService(event.Id)
 		if err != nil {
@@ -100,7 +107,9 @@ func (d *DockerManager) eventCallback(event *dockerclient.Event, ec chan error, 
 			return
 		}
 
-		d.list.AddService(event.Id, *service)
+		if s_err != nil || !s.Manual {
+			d.list.AddService(event.Id, *service)
+		}
 	}
 }
 

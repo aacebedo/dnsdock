@@ -101,6 +101,7 @@ func (s *HTTPServer) addService(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	service.Manual = true
 	s.list.AddService(id, *service)
 }
 
@@ -165,6 +166,7 @@ func (s *HTTPServer) updateService(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	service.Manual = true
 	// todo: this probably needs to be moved. consider stop event in the
 	// middle of sending PATCH. container would not be removed.
 	s.list.AddService(id, service)
