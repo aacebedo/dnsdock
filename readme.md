@@ -107,15 +107,13 @@ You may build this into your own container with this example Dockerfile:
 ```
 FROM tonistiigi/dnsdock
 
-COPY certs/ca.pem /certs/
-COPY certs/cert.pem /certs/
-COPY certs/key.pem /certs/
-
 ENV DOCKER_TLS_VERIFY 1
 ENV DOCKER_CERTS /certs
 
 CMD ["-docker=tcp://172.17.42.1:2376"]
 ```
+
+Use a volume (`-v /path/to/certs:/certs`) to give the container access to the certificate files, or build the certificates into the image if you have access to a secure private image registry.
 
 #### HTTP Server
 
