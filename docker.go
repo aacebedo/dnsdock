@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/samalba/dockerclient"
 )
@@ -31,12 +32,24 @@ func (d *DockerManager) Start() error {
 	ec := make(chan error)
 	d.docker.StartMonitorEvents(d.eventCallback, ec)
 	go func() {
+		backoff := 1 * time.Second
+		last_loop := time.Now()
 		for {
-			log.Println("Event error", <-ec)
+			log.Println("Event error:", <-ec)
 			// assume for now that an event error necessarily
 			// requires a re-establishment of the monitor stream
 			d.docker.StopAllMonitorEvents()
 
+			if time.Now().Sub(last_loop) > backoff {
+				backoff = 1 * time.Second
+			}
+			time.Sleep(backoff)
+			if backoff < 30*time.Second {
+				backoff *= 2
+			}
+			last_loop = time.Now()
+
+			log.Println("Reconnecting")
 			d.docker.StartMonitorEvents(d.eventCallback, ec)
 
 			d.Update() // catch up with anything we missed
