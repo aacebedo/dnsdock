@@ -191,6 +191,32 @@ sudo route -n add -net 172.17.0.0 <VAGRANT_MACHINE_IP>
 
 Finally, to make OSX use dnsdock for requests that match your domain suffix create a file with your domain ending under `/etc/resolver` (for example `/etc/resolver/myprojectname.docker`) and set its contents to `nameserver 172.17.42.1`.
 
+#### coreos-vagrant usage
+
+You can autostart the dnsdock service in the `user-data` file of coreos-vagrant.
+Everytime you `vagrant up` this CoreOs vagrant instance the dnsdock service will be running and start discovering your other services.
+
+Add the following snippet under the `units` part:
+
+```
+- name: dnsdock.service
+      enable: true
+      command: start
+      content: |
+        [Unit]
+        Description=dnsdock
+        After=docker.service
+        Requires=docker.service
+
+        [Service]
+        EnvironmentFile=/etc/environment
+        ExecStartPre=/bin/sh -c '/usr/bin/docker rm -f dnsdock || ls > /dev/null'
+        ExecStartPre=/bin/sh -c '/usr/bin/docker pull tonistiigi/dnsdock'
+        ExecStart=/usr/bin/docker run -v /var/run/docker.sock:/var/run/docker.sock --name dnsdock -p ${COREOS_PRIVATE_IPV4}:53:53/udp tonistiigi/dnsdock
+        ExecStop=/bin/sh -c '/usr/bin/docker stop dnsdock  || ls > /dev/null'
+```
+
+
 ---
 
 #### Lots of code in this repo is directly influenced by skydns and skydock. Many thanks to the authors of these projects.
