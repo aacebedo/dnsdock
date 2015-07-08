@@ -72,7 +72,7 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 		service.Image = ""
 	}
 	service.Name = cleanContainerName(inspect.Name)
-	service.Ip = net.ParseIP(inspect.NetworkSettings.IpAddress)
+	service.Ip = net.ParseIP(inspect.NetworkSettings.IPAddress)
 
 	service = overrideFromEnv(service, splitEnv(inspect.Config.Env))
 	if service == nil {
