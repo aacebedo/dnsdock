@@ -117,9 +117,7 @@ func (d *DockerManager) eventCallback(event *dockerclient.Event, ec chan error, 
 	switch event.Status {
 	case "die", "stop", "kill":
 		// Errors can be ignored here because there can be no-op events.
-		if s_err == nil && !s.Manual {
-			d.list.RemoveService(event.Id)
-		}
+		d.list.RemoveService(event.Id)
 	case "start", "restart":
 		service, err := d.getService(event.Id)
 		if err != nil {

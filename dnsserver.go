@@ -22,7 +22,7 @@ type Service struct {
 }
 
 func NewService() (s *Service) {
-	s = &Service{Ttl: -1, Manual: false}
+	s = &Service{Ttl: -1}
 	return
 }
 
