@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/samalba/dockerclient"
+	"github.com/cenkalti/backoff"
 )
 
 type DockerManager struct {
@@ -32,22 +33,14 @@ func (d *DockerManager) Start() error {
 	ec := make(chan error)
 	d.docker.StartMonitorEvents(d.eventCallback, ec)
 	go func() {
-		backoff := 1 * time.Second
-		last_loop := time.Now()
+		backoff := backoff.NewExponentialBackOff()
 		for {
 			log.Println("Event error:", <-ec)
 			// assume for now that an event error necessarily
 			// requires a re-establishment of the monitor stream
 			d.docker.StopAllMonitorEvents()
 
-			if time.Now().Sub(last_loop) > backoff {
-				backoff = 1 * time.Second
-			}
-			time.Sleep(backoff)
-			if backoff < 30*time.Second {
-				backoff *= 2
-			}
-			last_loop = time.Now()
+			time.Sleep(backoff.NextBackOff())
 
 			log.Println("Reconnecting")
 			d.docker.StartMonitorEvents(d.eventCallback, ec)
