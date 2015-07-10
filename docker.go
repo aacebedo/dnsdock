@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/samalba/dockerclient"
 	"github.com/cenkalti/backoff"
+	"github.com/samalba/dockerclient"
 )
 
 type DockerManager struct {
