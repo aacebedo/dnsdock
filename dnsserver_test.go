@@ -34,6 +34,7 @@ func TestDNSResponse(t *testing.T) {
 	}{
 		{"google.com.", -1, "A", dns.RcodeSuccess},
 		{"google.com.", -1, "MX", 0},
+		{"google.com.", -1, "AAAA", 0}, // google has AAAA records
 		{"docker.", 5, "A", 0},
 		{"docker.", 5, "MX", 0},
 		{"*.docker.", 5, "A", 0},
@@ -81,6 +82,10 @@ func TestDNSResponse(t *testing.T) {
 		if input.expected > 0 && len(r.Answer) != input.expected {
 			t.Error(input, "Expected:", input.expected,
 				" Got:", len(r.Answer))
+		}
+
+		if input.expected < 0 && len(r.Answer) == 0 {
+			t.Error(input, "Expected at least one record but got none")
 		}
 
 		if r.Rcode != input.rcode {
