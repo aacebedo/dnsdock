@@ -47,9 +47,9 @@ func NewDNSServer(c *Config) *DNSServer {
 	}
 
 	mux := dns.NewServeMux()
-	mux.HandleFunc(c.domain[len(c.domain)-1]+".", s.handleRequest)
-	mux.HandleFunc("arpa.", s.handleRequest)
-	mux.HandleFunc(".", s.handleOrForward)
+	mux.HandleFunc(c.domain.String()+".", s.handleRequest)
+	mux.HandleFunc("in-addr.arpa.", s.handleReverseRequest)
+	mux.HandleFunc(".", s.handleForward)
 
 	s.server = &dns.Server{Addr: c.dnsAddr, Net: "udp", Handler: mux}
 
@@ -142,102 +142,147 @@ func (s *DNSServer) listDomains(service *Service) chan string {
 	return c
 }
 
-func (s *DNSServer) handleOrForward(w dns.ResponseWriter, r *dns.Msg) {
-	m := s.doHandle(w, r)
-
-	// We could build a response, let's return it
-	if len(m.Answer) != 0 {
-		w.WriteMsg(m)
-		return
-	}
-
+func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 	// Otherwise just forward the request to another server
 	c := new(dns.Client)
 	if in, _, err := c.Exchange(r, s.config.nameserver); err != nil {
 		log.Print(err)
-		w.WriteMsg(new(dns.Msg))
+
+		m := new(dns.Msg)
+		m.SetReply(r)
+		m.Ns = s.createSOA()
+		m.SetRcode(r, dns.RcodeRefused) // REFUSED
+
+		w.WriteMsg(m)
 	} else {
 		w.WriteMsg(in)
 	}
 }
 
-func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
-	m := s.doHandle(w, r)
+func (s *DNSServer) makeServiceA(n string, service *Service) dns.RR {
+	rr := new(dns.A)
 
-	// We could NOT build a response
-	if len(m.Answer) == 0 && len(m.Ns) == 0 {
-		m.Ns = s.createSOA()
-		m.SetRcode(r, dns.RcodeNameError)
+	var ttl int
+	if service.Ttl != -1 {
+		ttl = service.Ttl
+	} else {
+		ttl = s.config.ttl
 	}
 
-	w.WriteMsg(m)
+	rr.Hdr = dns.RR_Header{
+		Name:   n,
+		Rrtype: dns.TypeA,
+		Class:  dns.ClassINET,
+		Ttl:    uint32(ttl),
+	}
+
+	rr.A = service.Ip
+
+	return rr
 }
 
-func (s *DNSServer) doHandle(w dns.ResponseWriter, r *dns.Msg) *dns.Msg {
+func (s *DNSServer) makeServiceMX(n string, service *Service) dns.RR {
+	rr := new(dns.MX)
+
+	var ttl int
+	if service.Ttl != -1 {
+		ttl = service.Ttl
+	} else {
+		ttl = s.config.ttl
+	}
+
+	rr.Hdr = dns.RR_Header{
+		Name:   n,
+		Rrtype: dns.TypeMX,
+		Class:  dns.ClassINET,
+		Ttl:    uint32(ttl),
+	}
+
+	rr.Mx = n
+
+	return rr
+}
+
+func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(r)
 
 	// Send empty response for empty requests
 	if len(r.Question) == 0 {
 		m.Ns = s.createSOA()
-		return m
+		w.WriteMsg(m)
+		return
 	}
 
-	switch r.Question[0].Qtype {
-	case dns.TypePTR:
-		s.handlePTRRequest(r, m)
-	case dns.TypeMX:
-		s.handleMXRequest(r, m)
-	case dns.TypeA:
-		s.handleARequest(r, m)
-	case dns.TypeSOA:
+	// respond to SOA requests
+	if r.Question[0].Qtype == dns.TypeSOA {
 		m.Answer = s.createSOA()
-	default:
-		m.Ns = s.createSOA()
-		m.SetRcode(r, dns.RcodeNotImplemented)
+		w.WriteMsg(m)
+		return
 	}
 
-	return m
-}
-
-func (s *DNSServer) handleMXRequest(r *dns.Msg, m *dns.Msg) {
 	m.Answer = make([]dns.RR, 0, 2)
 	query := r.Question[0].Name
 
+	// trim off any trailing dot
 	if query[len(query)-1] == '.' {
 		query = query[:len(query)-1]
 	}
 
 	for service := range s.queryServices(query) {
-		rr := new(dns.MX)
-
-		var ttl int
-		if service.Ttl != -1 {
-			ttl = service.Ttl
-		} else {
-			ttl = s.config.ttl
+		var rr dns.RR
+		switch r.Question[0].Qtype {
+		case dns.TypeA:
+			rr = s.makeServiceA(r.Question[0].Name, service)
+		case dns.TypeMX:
+			rr = s.makeServiceMX(r.Question[0].Name, service)
+		default:
+			// this query type isn't supported, but we do have
+			// a record with this name. Per RFC 4074 sec. 3, we
+			// immediately return an empty NOERROR reply.
+			m.Ns = s.createSOA()
+			w.WriteMsg(m)
+			return
 		}
 
-		rr.Hdr = dns.RR_Header{
-			Name:   r.Question[0].Name,
-			Rrtype: dns.TypeMX,
-			Class:  dns.ClassINET,
-			Ttl:    uint32(ttl),
-		}
-		rr.Mx = r.Question[0].Name
 		m.Answer = append(m.Answer, rr)
 	}
+
+	// We didn't find a record corresponding to the query
+	if len(m.Answer) == 0 {
+		m.Ns = s.createSOA()
+		m.SetRcode(r, dns.RcodeNameError) // NXDOMAIN
+	}
+
+	w.WriteMsg(m)
 }
 
-func (s *DNSServer) handlePTRRequest(r *dns.Msg, m *dns.Msg) {
+func (s *DNSServer) handleReverseRequest(w dns.ResponseWriter, r *dns.Msg) {
+	m := new(dns.Msg)
+	m.SetReply(r)
+
+	// Send empty response for empty requests
+	if len(r.Question) == 0 {
+		m.Ns = s.createSOA()
+		w.WriteMsg(m)
+		return
+	}
+
 	m.Answer = make([]dns.RR, 0, 2)
 	query := r.Question[0].Name
 
+	// trim off any trailing dot
 	if query[len(query)-1] == '.' {
 		query = query[:len(query)-1]
 	}
 
 	for service := range s.queryIp(query) {
+		if r.Question[0].Qtype != dns.TypePTR {
+			m.Ns = s.createSOA()
+			w.WriteMsg(m)
+			return
+		}
+
 		var ttl int
 		if service.Ttl != -1 {
 			ttl = service.Ttl
@@ -258,34 +303,13 @@ func (s *DNSServer) handlePTRRequest(r *dns.Msg, m *dns.Msg) {
 			m.Answer = append(m.Answer, rr)
 		}
 	}
-}
 
-func (s *DNSServer) handleARequest(r *dns.Msg, m *dns.Msg) {
-	m.Answer = make([]dns.RR, 0, 2)
-	query := r.Question[0].Name
-
-	if query[len(query)-1] == '.' {
-		query = query[:len(query)-1]
-	}
-
-	for service := range s.queryServices(query) {
-		rr := new(dns.A)
-
-		var ttl int
-		if service.Ttl != -1 {
-			ttl = service.Ttl
-		} else {
-			ttl = s.config.ttl
-		}
-
-		rr.Hdr = dns.RR_Header{
-			Name:   r.Question[0].Name,
-			Rrtype: dns.TypeA,
-			Class:  dns.ClassINET,
-			Ttl:    uint32(ttl),
-		}
-		rr.A = service.Ip
-		m.Answer = append(m.Answer, rr)
+	if len(m.Answer) != 0 {
+		w.WriteMsg(m)
+	} else {
+		// We didn't find a record corresponding to the query,
+		// try forwarding
+		s.handleForward(w, r)
 	}
 }
 
