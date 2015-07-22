@@ -30,29 +30,32 @@ func TestDNSResponse(t *testing.T) {
 		query    string
 		expected int
 		qType    string
+		rcode    int
 	}{
-		{"google.com.", -1, "A"},
-		{"google.com.", -1, "MX"},
-		{"docker.", 5, "A"},
-		{"docker.", 5, "MX"},
-		{"*.docker.", 5, "A"},
-		{"*.docker.", 5, "MX"},
-		{"bar.docker.", 2, "A"},
-		{"bar.docker.", 2, "MX"},
-		{"foo.docker.", 0, "A"},
-		{"foo.docker.", 0, "MX"},
-		{"baz.bar.docker.", 1, "A"},
-		{"baz.bar.docker.", 1, "MX"},
-		{"joe.docker.", 1, "A"},
-		{"joe.docker.", 1, "MX"},
-		{"super-alias.", 1, "A"},
-		{"super-alias.", 1, "MX"},
-		{"alias.domain.", 1, "A"},
-		{"alias.domain.", 1, "MX"},
-		{"1.0.0.127.in-addr.arpa.", 4, "PTR"}, // two services match with two domains each
-		{"5.0.0.127.in-addr.arpa.", 4, "PTR"}, // one service match with three aliases
-		{"4.0.0.127.in-addr.arpa.", 1, "PTR"}, // only one service with a single domain
-		{"2.0.0.127.in-addr.arpa.", 0, "PTR"}, // no match
+		{"google.com.", -1, "A", dns.RcodeSuccess},
+		{"google.com.", -1, "MX", 0},
+		{"docker.", 5, "A", 0},
+		{"docker.", 5, "MX", 0},
+		{"*.docker.", 5, "A", 0},
+		{"*.docker.", 5, "MX", 0},
+		{"bar.docker.", 2, "A", 0},
+		{"bar.docker.", 2, "MX", 0},
+		{"bar.docker.", 0, "AAAA", 0},
+		{"foo.docker.", 0, "A", dns.RcodeNameError},
+		{"foo.docker.", 0, "MX", dns.RcodeNameError},
+		{"baz.bar.docker.", 1, "A", 0},
+		{"baz.bar.docker.", 1, "MX", 0},
+		{"joe.docker.", 1, "A", 0},
+		{"joe.docker.", 1, "MX", 0},
+		{"joe.docker.", 0, "AAAA", 0},
+		{"super-alias.", 1, "A", 0},
+		{"super-alias.", 1, "MX", 0},
+		{"alias.domain.", 1, "A", 0},
+		{"alias.domain.", 1, "MX", 0},
+		{"1.0.0.127.in-addr.arpa.", 4, "PTR", 0},                  // two services match with two domains each
+		{"5.0.0.127.in-addr.arpa.", 4, "PTR", 0},                  // one service match with three aliases
+		{"4.0.0.127.in-addr.arpa.", 1, "PTR", 0},                  // only one service with a single domain
+		{"2.0.0.127.in-addr.arpa.", 0, "PTR", dns.RcodeNameError}, // no match
 	}
 
 	c := new(dns.Client)
@@ -71,12 +74,19 @@ func TestDNSResponse(t *testing.T) {
 
 		if len(r.Answer) == 0 {
 			if _, ok := r.Ns[0].(*dns.SOA); !ok {
-				t.Error(input, "No SOA anwer")
+				t.Error(input, "No SOA answer")
 			}
 		}
 
 		if input.expected > 0 && len(r.Answer) != input.expected {
-			t.Error(input, "Expected:", input.expected, " Got:", len(r.Answer))
+			t.Error(input, "Expected:", input.expected,
+				" Got:", len(r.Answer))
+		}
+
+		if r.Rcode != input.rcode {
+			t.Error(input, "Rcode expected:",
+				dns.RcodeToString[input.rcode],
+				" got:", dns.RcodeToString[r.Rcode])
 		}
 
 		for _, a := range r.Answer {
@@ -84,7 +94,7 @@ func TestDNSResponse(t *testing.T) {
 			if input.qType != rrType {
 				t.Error("Did not receive ", input.qType, " resource record")
 			} else {
-				t.Log("Received expeced response RR type", rrType)
+				t.Log("Received expected response RR type", rrType, "code", dns.RcodeToString[input.rcode])
 			}
 		}
 	}
