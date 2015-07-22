@@ -35,6 +35,7 @@ type ServiceListProvider interface {
 type DNSServer struct {
 	config   *Config
 	server   *dns.Server
+	mux      *dns.ServeMux
 	services map[string]*Service
 	lock     *sync.RWMutex
 }
@@ -46,12 +47,12 @@ func NewDNSServer(c *Config) *DNSServer {
 		lock:     &sync.RWMutex{},
 	}
 
-	mux := dns.NewServeMux()
-	mux.HandleFunc(c.domain.String()+".", s.handleRequest)
-	mux.HandleFunc("in-addr.arpa.", s.handleReverseRequest)
-	mux.HandleFunc(".", s.handleForward)
+	s.mux = dns.NewServeMux()
+	s.mux.HandleFunc(c.domain.String()+".", s.handleRequest)
+	s.mux.HandleFunc("in-addr.arpa.", s.handleReverseRequest)
+	s.mux.HandleFunc(".", s.handleForward)
 
-	s.server = &dns.Server{Addr: c.dnsAddr, Net: "udp", Handler: mux}
+	s.server = &dns.Server{Addr: c.dnsAddr, Net: "udp", Handler: s.mux}
 
 	return s
 }
@@ -71,6 +72,10 @@ func (s *DNSServer) AddService(id string, service Service) {
 	id = s.getExpandedID(id)
 	s.services[id] = &service
 
+	for _, alias := range service.Aliases {
+		s.mux.HandleFunc(alias+".", s.handleRequest)
+	}
+
 	if s.config.verbose {
 		log.Println("Added service:", id, service)
 	}
@@ -83,6 +88,10 @@ func (s *DNSServer) RemoveService(id string) error {
 	id = s.getExpandedID(id)
 	if _, ok := s.services[id]; !ok {
 		return errors.New("No such service: " + id)
+	}
+
+	for _, alias := range s.services[id].Aliases {
+		s.mux.HandleRemove(alias + ".")
 	}
 
 	delete(s.services, id)
