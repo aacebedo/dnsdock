@@ -1,22 +1,27 @@
 {
 	"ImportPath": "github.com/tonistiigi/dnsdock",
-	"GoVersion": "go1.4.1",
+	"GoVersion": "go1.4.2",
 	"Deps": [
+		{
+			"ImportPath": "github.com/docker/docker/pkg/units",
+			"Comment": "v1.4.1-4423-g270d7e1",
+			"Rev": "270d7e1af8075f8c05f820d4a9a40f0aebd3ca28"
+		},
 		{
 			"ImportPath": "github.com/gorilla/context",
 			"Rev": "215affda49addc4c8ef7e2534915df2c8c35c6cd"
 		},
 		{
 			"ImportPath": "github.com/gorilla/mux",
-			"Rev": "8096f47503459bcc74d1f4c487b7e6e42e5746b5"
+			"Rev": "9cb89f07ca03c6a28d1e237ba033bc6a29422fd6"
 		},
 		{
 			"ImportPath": "github.com/miekg/dns",
-			"Rev": "e98f4bc5ff71defdb2e81147cffe9fee92517ad8"
+			"Rev": "3e549e2f6fd420cdffa528144b925305401bf55c"
 		},
 		{
 			"ImportPath": "github.com/samalba/dockerclient",
-			"Rev": "578f4b4d729fb23a8ffade2f7e3f335a964fea0c"
+			"Rev": "a78609286676d55688dcedf8a90522bc7d1bd569"
 		}
 	]
 }

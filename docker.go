@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"errors"
 	"log"
 	"net"
@@ -17,8 +18,8 @@ type DockerManager struct {
 	docker *dockerclient.DockerClient
 }
 
-func NewDockerManager(c *Config, list ServiceListProvider) (*DockerManager, error) {
-	docker, err := dockerclient.NewDockerClient(c.dockerHost, nil)
+func NewDockerManager(c *Config, list ServiceListProvider, tlsConfig *tls.Config) (*DockerManager, error) {
+	docker, err := dockerclient.NewDockerClient(c.dockerHost, tlsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +72,7 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 		service.Image = ""
 	}
 	service.Name = cleanContainerName(inspect.Name)
-	service.Ip = net.ParseIP(inspect.NetworkSettings.IpAddress)
+	service.Ip = net.ParseIP(inspect.NetworkSettings.IPAddress)
 
 	service = overrideFromEnv(service, splitEnv(inspect.Config.Env))
 	if service == nil {
