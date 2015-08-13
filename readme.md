@@ -84,9 +84,15 @@ redis1.*.docker.		0	IN	A	172.17.42.2
 
 DNS listening port needs to be bound to the *docker0* inferface so that its
 available to all containers. To avoid this IP changing during host restart add
-it to the docker default options. Open file `/etc/default/docker` and add
-`--bip=172.17.42.1/24 --dns=172.17.42.1` to `DOCKER_OPTS` variable. Restart
-docker daemon after you have done that (`sudo service docker restart`).
+it to the docker default options.
+
+- If you use systemd (present on Fedora and recent Ubuntu versions), edit
+`/lib/systemd/system/docker.service` and add the options to the command you
+will see in the `ExecStart` section, the run `sudo systemctl daemon-reload`.
+- If you do not, Open file `/etc/default/docker` and add `--bip=172.17.42.1/24
+--dns=172.17.42.1` to `DOCKER_OPTS` variable.
+
+Restart docker daemon after you have done that (`sudo service docker restart`).
 
 Now you only need to run the dnsdock container:
 
