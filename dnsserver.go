@@ -215,6 +215,7 @@ func (s *DNSServer) makeServiceMX(n string, service *Service) dns.RR {
 func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(r)
+	m.RecursionAvailable = true
 
 	// Send empty response for empty requests
 	if len(r.Question) == 0 {
@@ -269,6 +270,7 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 func (s *DNSServer) handleReverseRequest(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(r)
+	m.RecursionAvailable = true
 
 	// Send empty response for empty requests
 	if len(r.Question) == 0 {
