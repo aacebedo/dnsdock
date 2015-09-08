@@ -7,4 +7,4 @@ RUN cd /go/src/github.com/tonistiigi/dnsdock && \
     godep restore && \
     go install -ldflags "-X main.version `git describe --tags HEAD``git status --porcelain --untracked-files=no 2>/dev/null | grep -q ^ && echo "-dirty"`" ./...
 
-ENTRYPOINT ["/go/bin/dnsdock"] 
+ENTRYPOINT ["/go/bin/dnsdock"]
