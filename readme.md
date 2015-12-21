@@ -58,26 +58,26 @@ then they are all returned. Wildcard requests are also supported.
 > dig *.docker
 ...
 ;; ANSWER SECTION:
-docker.			0	IN	A	172.17.42.5
-docker.			0	IN	A	172.17.42.3
-docker.			0	IN	A	172.17.42.2
-docker.			0	IN	A	172.17.42.7
+docker.			0	IN	A	172.17.0.5
+docker.			0	IN	A	172.17.0.3
+docker.			0	IN	A	172.17.0.2
+docker.			0	IN	A	172.17.0.7
 
 > dig redis.docker
 ...
 ;; ANSWER SECTION:
-redis.docker.		0	IN	A	172.17.42.3
-redis.docker.		0	IN	A	172.17.42.2
+redis.docker.		0	IN	A	172.17.0.3
+redis.docker.		0	IN	A	172.17.0.2
 
 > dig redis1.redis.docker
 ...
 ;; ANSWER SECTION:
-redis1.redis.docker.		0	IN	A	172.17.42.2
+redis1.redis.docker.		0	IN	A	172.17.0.2
 
 > dig redis1.*.docker
 ...
 ;; ANSWER SECTION:
-redis1.*.docker.		0	IN	A	172.17.42.2
+redis1.*.docker.		0	IN	A	172.17.0.2
 ```
 
 #### Setup
@@ -89,21 +89,21 @@ it to the docker default options.
 - If you use systemd (present on Fedora and recent Ubuntu versions), edit
 `/lib/systemd/system/docker.service` and add the options to the command you
 will see in the `ExecStart` section, the run `sudo systemctl daemon-reload`.
-- If you do not, Open file `/etc/default/docker` and add `--bip=172.17.42.1/24
---dns=172.17.42.1` to `DOCKER_OPTS` variable.
+- If you do not, Open file `/etc/default/docker` and add `--bip=172.17.0.1/24
+--dns=172.17.0.1` to `DOCKER_OPTS` variable.
 
 Restart docker daemon after you have done that (`sudo service docker restart`).
 
 Now you only need to run the dnsdock container:
 
 ```
-docker run -d -v /var/run/docker.sock:/var/run/docker.sock --name dnsdock -p 172.17.42.1:53:53/udp tonistiigi/dnsdock [--opts]
+docker run -d -v /var/run/docker.sock:/var/run/docker.sock --name dnsdock -p 172.17.0.1:53:53/udp tonistiigi/dnsdock [--opts]
 ```
 
 - `-d` starts container as daemon
 - `-v /var/run/docker.sock:/var/run/docker.sock` shares the docker socket to
   the container so that dnsdock can connect to the Docker API.
-- `-p 172.17.42.1:53:53/udp` exposes the default DNS port to the docker0 bridge interface.
+- `-p 172.17.0.1:53:53/udp` exposes the default DNS port to the docker0 bridge interface.
 
 Additional configuration options to dnsdock command:
 
@@ -123,7 +123,7 @@ Additional configuration options to dnsdock command:
 -tlskey="$HOME/.docker/key.pem": Path to client certificate private key
 ```
 
-If you also want to let the host machine discover the containers add `nameserver 172.17.42.1` to your `/etc/resolv.conf`.
+If you also want to let the host machine discover the containers add `nameserver 172.17.0.1` to your `/etc/resolv.conf`.
 
 
 #### SELinux and Fedora / RHEL / CentOS
@@ -151,7 +151,7 @@ FROM tonistiigi/dnsdock
 ENV DOCKER_TLS_VERIFY 1
 ENV DOCKER_CERTS /certs
 
-CMD ["-docker=tcp://172.17.42.1:2376"]
+CMD ["-docker=tcp://172.17.0.1:2376"]
 ```
 
 Use a volume (`-v /path/to/certs:/certs`) to give the container access to the
@@ -241,7 +241,7 @@ sudo route -n add -net 172.17.0.0 <VAGRANT_MACHINE_IP>
 Finally, to make OSX use dnsdock for requests that match your domain suffix
 create a file with your domain ending under `/etc/resolver` (for example
 `/etc/resolver/myprojectname.docker`) and set its contents to `nameserver
-172.17.42.1`.
+172.17.0.1`.
 
 #### coreos-vagrant usage
 
