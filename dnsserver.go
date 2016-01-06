@@ -162,7 +162,11 @@ func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 			w.WriteMsg(in)
 			return
 		} else {
-			log.Print(err)
+			if i == (len(s.config.nameserver) - 1) {
+				log.Println("Error forwarding DNS: " + err.Error() + ": fatal, no more nameservers to try")
+			} else {
+				log.Println("Error forwarding DNS: " + err.Error() + ": trying next nameserver")
+			}
 
 			m := new(dns.Msg)
 			m.SetReply(r)
