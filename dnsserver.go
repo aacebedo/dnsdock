@@ -154,17 +154,23 @@ func (s *DNSServer) listDomains(service *Service) chan string {
 func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 	// Otherwise just forward the request to another server
 	c := new(dns.Client)
-	if in, _, err := c.Exchange(r, s.config.nameserver); err != nil {
-		log.Print(err)
 
-		m := new(dns.Msg)
-		m.SetReply(r)
-		m.Ns = s.createSOA()
-		m.SetRcode(r, dns.RcodeRefused) // REFUSED
+	// look at each nameserver, stop on success
+	for i := range s.config.nameserver {
+		in, _, err := c.Exchange(r, s.config.nameserver[i])
+		if err == nil {
+			w.WriteMsg(in)
+			return
+		} else {
+			log.Print(err)
 
-		w.WriteMsg(m)
-	} else {
-		w.WriteMsg(in)
+			m := new(dns.Msg)
+			m.SetReply(r)
+			m.Ns = s.createSOA()
+			m.SetRcode(r, dns.RcodeRefused) // REFUSED
+
+			w.WriteMsg(m)
+		}
 	}
 }
 

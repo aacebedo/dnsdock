@@ -17,7 +17,7 @@ func main() {
 
 	config := NewConfig()
 
-	flag.StringVar(&config.nameserver, "nameserver", config.nameserver, "DNS server for unmatched requests")
+	flag.Var(&config.nameserver, "nameserver", "Comma separated list of DNS server(s) for unmatched requests")
 	flag.StringVar(&config.dnsAddr, "dns", config.dnsAddr, "Listen DNS requests on this address")
 	flag.StringVar(&config.httpAddr, "http", config.httpAddr, "Listen HTTP requests on this address")
 	domain := flag.String("domain", config.domain.String(), "Domain that is appended to all requests")
