@@ -152,11 +152,18 @@ func (s *DNSServer) listDomains(service *Service) chan string {
 }
 
 func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
+	if s.config.verbose {
+		log.Println("Using DNS forwarding")
+	}
 	// Otherwise just forward the request to another server
 	c := new(dns.Client)
 
 	// look at each nameserver, stop on success
 	for i := range s.config.nameserver {
+		if s.config.verbose {
+			log.Println("Using nameserver " + s.config.nameserver[i])
+		}
+
 		in, _, err := c.Exchange(r, s.config.nameserver[i])
 		if err == nil {
 			w.WriteMsg(in)
