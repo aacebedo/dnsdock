@@ -153,7 +153,7 @@ func (s *DNSServer) listDomains(service *Service) chan string {
 
 func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 	if s.config.verbose {
-		log.Println("Using DNS forwarding")
+		log.Println("Using DNS forwarding for " + r.Question[0].Name)
 	}
 	// Otherwise just forward the request to another server
 	c := new(dns.Client)
