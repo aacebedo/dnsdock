@@ -250,6 +250,7 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			// a record with this name. Per RFC 4074 sec. 3, we
 			// immediately return an empty NOERROR reply.
 			m.Ns = s.createSOA()
+			m.MsgHdr.Authoritative = true
 			w.WriteMsg(m)
 			return
 		}
