@@ -18,6 +18,7 @@ type Service struct {
 	Ip      net.IP
 	Ttl     int
 	Aliases []string
+	Manual  bool
 }
 
 func NewService() (s *Service) {

@@ -8,7 +8,9 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/samalba/dockerclient"
 )
 
@@ -31,11 +33,26 @@ func (d *DockerManager) Start() error {
 	ec := make(chan error)
 	d.docker.StartMonitorEvents(d.eventCallback, ec)
 	go func() {
+		backoff := backoff.NewExponentialBackOff()
 		for {
-			log.Println("Event error", <-ec)
+			log.Println("Event error:", <-ec)
+			// assume for now that an event error necessarily
+			// requires a re-establishment of the monitor stream
+			d.docker.StopAllMonitorEvents()
+
+			time.Sleep(backoff.NextBackOff())
+
+			log.Println("Reconnecting")
+			d.docker.StartMonitorEvents(d.eventCallback, ec)
+
+			d.Update() // catch up with anything we missed
 		}
 	}()
 
+	return d.Update()
+}
+
+func (d *DockerManager) Update() error {
 	containers, err := d.docker.ListContainers(false, false, "")
 	if err != nil {
 		return errors.New("Error connecting to docker socket: " + err.Error())
@@ -47,7 +64,10 @@ func (d *DockerManager) Start() error {
 			log.Println(err)
 			continue
 		}
-		d.list.AddService(container.Id, *service)
+		s, err := d.list.GetService(container.Id)
+		if err != nil || !s.Manual {
+			d.list.AddService(container.Id, *service)
+		}
 	}
 
 	return nil
@@ -85,6 +105,8 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 func (d *DockerManager) eventCallback(event *dockerclient.Event, ec chan error, args ...interface{}) {
 	//log.Printf("Received event: %#v %#v\n", *event, args)
 
+	s, s_err := d.list.GetService(event.Id)
+
 	switch event.Status {
 	case "die", "stop", "kill":
 		// Errors can be ignored here because there can be no-op events.
@@ -96,7 +118,9 @@ func (d *DockerManager) eventCallback(event *dockerclient.Event, ec chan error, 
 			return
 		}
 
-		d.list.AddService(event.Id, *service)
+		if s_err != nil || !s.Manual {
+			d.list.AddService(event.Id, *service)
+		}
 	}
 }
 

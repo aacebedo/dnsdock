@@ -8,6 +8,10 @@
 			"Rev": "270d7e1af8075f8c05f820d4a9a40f0aebd3ca28"
 		},
 		{
+			"ImportPath": "github.com/cenkalti/backoff",
+			"Rev": "6c45d6bc1e78d94431dff8fc28a99f20bafa355a"
+		},
+		{
 			"ImportPath": "github.com/gorilla/context",
 			"Rev": "215affda49addc4c8ef7e2534915df2c8c35c6cd"
 		},
