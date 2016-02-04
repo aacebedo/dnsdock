@@ -11,12 +11,14 @@ type HTTPServer struct {
 	config *Config
 	list   ServiceListProvider
 	server *http.Server
+	docker *DockerManager
 }
 
-func NewHTTPServer(c *Config, list ServiceListProvider) *HTTPServer {
+func NewHTTPServer(c *Config, list ServiceListProvider, docker *DockerManager) *HTTPServer {
 	s := &HTTPServer{
 		config: c,
 		list:   list,
+		docker: docker,
 	}
 
 	router := mux.NewRouter()
@@ -27,6 +29,9 @@ func NewHTTPServer(c *Config, list ServiceListProvider) *HTTPServer {
 	router.HandleFunc("/services/{id}", s.removeService).Methods("DELETE")
 
 	router.HandleFunc("/set/ttl", s.setTTL).Methods("PUT")
+
+	router.HandleFunc("/reload", s.reloadServices).Methods("POST")
+	router.HandleFunc("/reload/{id}", s.reloadService).Methods("POST")
 
 	s.server = &http.Server{Addr: c.httpAddr, Handler: router}
 
@@ -96,6 +101,7 @@ func (s *HTTPServer) addService(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	service.Manual = true
 	s.list.AddService(id, *service)
 }
 
@@ -160,6 +166,7 @@ func (s *HTTPServer) updateService(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	service.Manual = true
 	// todo: this probably needs to be moved. consider stop event in the
 	// middle of sending PATCH. container would not be removed.
 	s.list.AddService(id, service)
@@ -176,4 +183,53 @@ func (s *HTTPServer) setTTL(w http.ResponseWriter, req *http.Request) {
 
 	s.config.ttl = value
 
+}
+
+func (s *HTTPServer) reloadService(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+
+	id, ok := vars["id"]
+	if !ok {
+		http.Error(w, "ID required", http.StatusBadRequest)
+		return
+	}
+
+	service, err := s.docker.getService(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	s.list.AddService(id, *service)
+}
+
+func (s *HTTPServer) reloadServices(w http.ResponseWriter, req *http.Request) {
+	deletes := make(map[string]bool)
+	for id, service := range s.list.GetAllServices() {
+		if !service.Manual {
+			deletes[id] = true
+		}
+	}
+
+	containers, err := s.docker.listContainers()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	for _, container := range containers {
+		deletes[container.Id] = false
+		service, err := s.docker.getService(container.Id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		s.list.AddService(container.Id, *service)
+	}
+
+	for id, delete := range deletes {
+		if delete {
+			s.list.RemoveService(id)
+		}
+	}
 }

@@ -79,7 +79,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	httpServer := NewHTTPServer(config, dnsServer)
+	httpServer := NewHTTPServer(config, dnsServer, docker)
 	go func() {
 		if err := httpServer.Start(); err != nil {
 			log.Fatal(err)
