@@ -49,15 +49,16 @@ func NewConfig() *Config {
 	}
 
 	return &Config{
-		nameserver: "8.8.8.8:53",
-		dnsAddr:    ":53",
-		domain:     NewDomain("docker"),
-		dockerHost: dockerHost,
-		httpAddr:   ":80",
-		tlsVerify:  tlsVerify,
-		tlsCaCert:  dockerCerts + "/ca.pem",
-		tlsCert:    dockerCerts + "/cert.pem",
-		tlsKey:     dockerCerts + "/key.pem",
+		nameserver:  "8.8.8.8:53",
+		dnsAddr:     ":53",
+		domain:      NewDomain("docker"),
+		dockerHost:  dockerHost,
+		httpAddr:    ":80",
+		createAlias: false,
+		tlsVerify:   tlsVerify,
+		tlsCaCert:   dockerCerts + "/ca.pem",
+		tlsCert:     dockerCerts + "/cert.pem",
+		tlsKey:      dockerCerts + "/key.pem",
 	}
 
 }
