@@ -78,6 +78,7 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 	if service == nil {
 		return nil, errors.New("Skipping " + id)
 	}
+	service.Aliases = append(service.Aliases, service.Name)
 
 	return service, nil
 }

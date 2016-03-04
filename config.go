@@ -23,17 +23,18 @@ func (d *Domain) String() string {
 }
 
 type Config struct {
-	nameserver string
-	dnsAddr    string
-	domain     Domain
-	dockerHost string
-	tlsVerify  bool
-	tlsCaCert  string
-	tlsCert    string
-	tlsKey     string
-	verbose    bool
-	httpAddr   string
-	ttl        int
+	nameserver  string
+	dnsAddr     string
+	domain      Domain
+	dockerHost  string
+	tlsVerify   bool
+	tlsCaCert   string
+	tlsCert     string
+	tlsKey      string
+	verbose     bool
+	httpAddr    string
+	ttl         int
+	createAlias bool
 }
 
 func NewConfig() *Config {
