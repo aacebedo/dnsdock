@@ -74,6 +74,7 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 	service.Name = cleanContainerName(inspect.Name)
 	service.Ip = net.ParseIP(inspect.NetworkSettings.IPAddress)
 
+	service = overrideFromLabels(service, inspect.Config.Labels)
 	service = overrideFromEnv(service, splitEnv(inspect.Config.Env))
 	if service == nil {
 		return nil, errors.New("Skipping " + id)
@@ -137,6 +138,51 @@ func splitEnv(in []string) (out map[string]string) {
 		}
 		out[strings.Trim(parts[0], " ")] = value
 	}
+	return
+}
+
+func overrideFromLabels(in *Service, labels map[string]string) (out *Service) {
+	var region string
+	for k, v := range labels {
+		if k == "com.dnsdock.ignore" {
+			return nil
+		}
+
+		if k == "com.dnsdock.alias" {
+			in.Aliases = strings.Split(v, ",")
+		}
+
+		if k == "com.dnsdock.name" {
+			in.Name = v
+		}
+
+		if k == "com.dnsdock.tags" {
+			if len(v) == 0 {
+				in.Name = ""
+			} else {
+				in.Name = strings.Split(v, ",")[0]
+			}
+		}
+
+		if k == "com.dnsdock.image" {
+			in.Image = v
+		}
+
+		if k == "com.dnsdock.ttl" {
+			if ttl, err := strconv.Atoi(v); err == nil {
+				in.Ttl = ttl
+			}
+		}
+
+		if k == "com.dnsdock.region" {
+			region = v
+		}
+	}
+
+	if len(region) > 0 {
+		in.Image = in.Image + "." + region
+	}
+	out = in
 	return
 }
 
