@@ -1,10 +1,17 @@
-FROM golang:1.4.1
+FROM alpine:3.3
 
-ADD . /go/src/github.com/tonistiigi/dnsdock
+ARG GITHUB_USER="tonistigii"
+ARG GOPATH="/tmp/go"
+ARG WORKDIR="$GOPATH/src/github.com/$GITHUB_USER/dnsdock"
 
-RUN cd /go/src/github.com/tonistiigi/dnsdock && \
-    go get -v github.com/tools/godep && \
-    godep restore && \
-    go install -ldflags "-X main.version `git describe --tags HEAD``if [[ -n $(command git status --porcelain --untracked-files=no 2>/dev/null) ]]; then echo "-dirty"; fi`" ./...
+COPY . "$WORKDIR"
 
-ENTRYPOINT ["/go/bin/dnsdock"] 
+WORKDIR "$WORKDIR"
+
+RUN apk --no-cache add --virtual build-deps go make git && \
+    go get github.com/tools/godep && \
+    "$GOPATH/bin/godep" go build -o /usr/bin/dnsdock && \
+    apk del build-deps && \
+    rm -rf "$GOPATH"
+
+ENTRYPOINT ["/usr/bin/dnsdock"]
