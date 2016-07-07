@@ -3,62 +3,87 @@ package main
 import (
 	"crypto/tls"
 	"errors"
+	"github.com/docker/engine-api/client"
+	"github.com/docker/engine-api/types"
+	eventtypes "github.com/docker/engine-api/types/events"
+	"github.com/docker/engine-api/types/network"
+	"github.com/vdemeester/docker-events"
 	"log"
 	"net"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/samalba/dockerclient"
+	"golang.org/x/net/context"
 )
 
 type DockerManager struct {
 	config *Config
 	list   ServiceListProvider
-	docker *dockerclient.DockerClient
+	client *client.Client
+	cancel context.CancelFunc
 }
 
 func NewDockerManager(c *Config, list ServiceListProvider, tlsConfig *tls.Config) (*DockerManager, error) {
-	docker, err := dockerclient.NewDockerClient(c.dockerHost, tlsConfig)
+	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
+	dclient, err := client.NewClient(c.dockerHost, "v1.22", nil, defaultHeaders)
+
 	if err != nil {
 		return nil, err
 	}
 
-	return &DockerManager{config: c, list: list, docker: docker}, nil
+	return &DockerManager{config: c, list: list, client: dclient}, nil
 }
 
 func (d *DockerManager) Start() error {
-	ec := make(chan error)
-	d.docker.StartMonitorEvents(d.eventCallback, ec)
-	go func() {
-		for {
-			log.Println("Event error", <-ec)
+	ctx, cancel := context.WithCancel(context.Background())
+	d.cancel = cancel
+	startHandler := func(m eventtypes.Message) {
+		log.Println("Started container '", m.ID, "'")
+		service, err := d.getService(m.ID)
+		if err != nil {
+			log.Println(err)
+		} else {
+			d.list.AddService(m.ID, *service)
 		}
-	}()
+	}
 
-	containers, err := d.docker.ListContainers(false, false, "")
+	stopHandler := func(m eventtypes.Message) {
+		log.Println("Stopped container '", m.ID, "'")
+		d.list.RemoveService(m.ID)
+	}
+
+	eventHandler := events.NewHandler(events.ByAction)
+	eventHandler.Handle("start", startHandler)
+	eventHandler.Handle("stop", stopHandler)
+	eventHandler.Handle("die", stopHandler)
+	eventHandler.Handle("kill", stopHandler)
+
+	events.MonitorWithHandler(ctx, d.client, types.EventsOptions{}, eventHandler)
+
+	containers, err := d.client.ContainerList(context.Background(), types.ContainerListOptions{})
 	if err != nil {
-		return errors.New("Error connecting to docker socket: " + err.Error())
+		return errors.New("Error getting containers: " + err.Error())
 	}
 
 	for _, container := range containers {
-		service, err := d.getService(container.Id)
+		service, err := d.getService(container.ID)
 		if err != nil {
 			log.Println(err)
 			continue
 		}
-		d.list.AddService(container.Id, *service)
+		d.list.AddService(container.ID, *service)
 	}
 
 	return nil
 }
 
 func (d *DockerManager) Stop() {
-	d.docker.StopAllMonitorEvents()
+	d.cancel()
 }
 
 func (d *DockerManager) getService(id string) (*Service, error) {
-	inspect, err := d.docker.InspectContainer(id)
+	desc, err := d.client.ContainerInspect(context.Background(), id)
 	if err != nil {
 		return nil, err
 	}
@@ -66,38 +91,32 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 	service := NewService()
 	service.Aliases = make([]string, 0)
 
-	service.Image = getImageName(inspect.Config.Image)
-	if imageNameIsSHA(service.Image, inspect.Image) {
+	service.Image = getImageName(desc.Config.Image)
+	if imageNameIsSHA(service.Image, desc.Image) {
 		log.Println("Warning: Can't route ", id[:10], ", image", service.Image, "is not a tag.")
 		service.Image = ""
 	}
-	service.Name = cleanContainerName(inspect.Name)
-	service.Ip = net.ParseIP(inspect.NetworkSettings.IPAddress)
+	service.Name = cleanContainerName(desc.Name)
+	switch len(desc.NetworkSettings.Networks) {
+	case 0:
+		log.Println("Warning, no IP address found for container ", desc.Name)
+	default:
+		v := make([]*network.EndpointSettings, 0, len(desc.NetworkSettings.Networks))
+		for _, value := range desc.NetworkSettings.Networks {
+			v = append(v, value)
+		}
+		if len(v) > 1 {
+			log.Println("Warning, Multiple IP address found for container ", desc.Name, ". Only the first address will be used")
+		}
+		service.Ip = net.ParseIP(v[0].IPAddress)
+	}
 
-	service = overrideFromEnv(service, splitEnv(inspect.Config.Env))
+	service = overrideFromEnv(service, splitEnv(desc.Config.Env))
 	if service == nil {
 		return nil, errors.New("Skipping " + id)
 	}
 
 	return service, nil
-}
-
-func (d *DockerManager) eventCallback(event *dockerclient.Event, ec chan error, args ...interface{}) {
-	//log.Printf("Received event: %#v %#v\n", *event, args)
-
-	switch event.Status {
-	case "die", "stop", "kill":
-		// Errors can be ignored here because there can be no-op events.
-		d.list.RemoveService(event.Id)
-	case "start", "restart":
-		service, err := d.getService(event.Id)
-		if err != nil {
-			ec <- err
-			return
-		}
-
-		d.list.AddService(event.Id, *service)
-	}
 }
 
 func getImageName(tag string) string {
