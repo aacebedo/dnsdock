@@ -1,8 +1,26 @@
-language: go
+services:
+  - docker
 
-go:
-    - 1.6
-
-before_script:
-
-script: make test
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y --force-yes -q docker-engine
+  - docker build -t dnsdockbuild -f docker/build.dockerfile .
+  - sudo mkdir -m 777 -p /build/amd64 /build/arm
+  
+script: 
+  - docker run -t -v `pwd`:/go/src/github.com/tonistiigi/dnsdock -v /build/dnsdock.amd64:/go/bin/dnsdock dnsdockbuild -c "export GO_ARCH=amd64; godep restore; cd src; go build -o ../dnsdock" 
+  - docker run -t -v `pwd`:/go/src/github.com/tonistiigi/dnsdock -v /build/dnsdock.arm:/go/bin/dnsdock dnsdockbuild -c "export GO_ARCH=arm; godep restore; cd src; go build -o ../dnsdock"
+  
+deploy:
+  - provider: releases
+    skip_cleanup: true
+    api-key:
+       secure: $GITHUB_TOKEN
+    file:
+      - /build/dnsdock.amd64
+      - /build/dnsdock.arm
+    on:
+      tags: true
+  - provider: script
+    script: docker login -u $BINTRAY_USERNAME -p $BINTRAY_APIKEY -e $BINTRAY_EMAIL aacebedo-docker-cfdsnupdater.bintray.io && docker build --build-arg VERSION=$TRAVIS_BRANCH -f environments/run/Dockerfile.amd64 -t aacebedo/cfdnsupdater-amd64 . && docker tag aacebedo/cfdnsupdater-amd64 aacebedo-docker-cfdsnupdater.bintray.io/cfdnsupdater-amd64:$TRAVIS_BRANCH && docker push aacebedo-docker-cfdsnupdater.bintray.io/cfdnsupdater-amd64:$TRAVIS_BRANCH
+    on:
