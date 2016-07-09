@@ -47,6 +47,10 @@ func NewDNSServer(c *Config) *DNSServer {
 		lock:     &sync.RWMutex{},
 	}
 
+	if s.config.verbose {
+		log.Println("Handling DNS requests for " + c.domain.String() + ".")
+	}
+
 	s.mux = dns.NewServeMux()
 	s.mux.HandleFunc(c.domain.String()+".", s.handleRequest)
 	s.mux.HandleFunc("in-addr.arpa.", s.handleReverseRequest)
@@ -72,12 +76,15 @@ func (s *DNSServer) AddService(id string, service Service) {
 	id = s.getExpandedID(id)
 	s.services[id] = &service
 
-	for _, alias := range service.Aliases {
-		s.mux.HandleFunc(alias+".", s.handleRequest)
-	}
-
 	if s.config.verbose {
 		log.Println("Added service:", id, service)
+	}
+
+	for _, alias := range service.Aliases {
+		if s.config.verbose {
+			log.Println("Handling DNS requests for " + alias + ".")
+		}
+		s.mux.HandleFunc(alias+".", s.handleRequest)
 	}
 }
 
@@ -238,6 +245,10 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		query = query[:len(query)-1]
 	}
 
+	if s.config.verbose {
+		log.Println("DNS request for query " + query + " from remote " + w.RemoteAddr().String())
+	}
+
 	for service := range s.queryServices(query) {
 		var rr dns.RR
 		switch r.Question[0].Qtype {
@@ -255,6 +266,9 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			return
 		}
 
+		if s.config.verbose {
+			log.Println("DNS record found for " + query)
+		}
 		m.Answer = append(m.Answer, rr)
 	}
 
@@ -262,6 +276,9 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	if len(m.Answer) == 0 {
 		m.Ns = s.createSOA()
 		m.SetRcode(r, dns.RcodeNameError) // NXDOMAIN
+		if s.config.verbose {
+			log.Println("No DNS record found for " + query)
+		}
 	}
 
 	w.WriteMsg(m)
