@@ -21,22 +21,44 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+{{ $GolangVersion := (or .GolangVersion "1.6.2") }}
+{{ $Arch:= (or .Arch "amd64") }}
+{{ $DNSDockVersion:= (or .DNSDockVersion "dev") }}
+{{ $LdFlags:= (or .DNSDockVersion "-dirty") }}
+{{ $OutputDir:= (or .OutputDir ".") }}
+
+# build image
 FROM alpine
+
 RUN apk update
 RUN apk upgrade
-
-ARG GOLANG_VERSION=1.6.2
-RUN apk add go>${GOLANG_VERSION} git
+RUN apk add go>{{$GolangVersion}} git
 
 ENV GOPATH /go
 ENV CGO_ENABLED 0
 ENV PATH ${PATH}:/go/bin
+ENV CGO_ENABLED=0
 
 RUN go get -v github.com/tools/godep
 
-VOLUME ["/go/src/github.com/tonistiigi/dnsdock"]
-VOLUME ["/go/bin"]
+ADD . /go/src/dnsdock
+MOUNT {{$OutputDir}}:/output
+WORKDIR /go/src/dnsdock
+RUN godep restore
+WORKDIR /go/src/dnsdock/src
 
-WORKDIR /go/src/github.com/tonistiigi/dnsdock
+ENV GOARCH={{$Arch}}
+RUN go build -o /go/bin/dnsdock -ldflags "-X main.version {{$LdFlags}}"
+RUN cp /go/bin/dnsdock /output/dnsdock
+EXPORT /go/bin/dnsdock ./dnsdock
 
-ENTRYPOINT ["sh"] 
+# run image
+{{ if eq $Arch "amd64" }}
+FROM alpine
+{{ else }}
+FROM easypi/alpine-arm
+{{ end }}
+IMPORT ./dnsdock /bin/dnsdock
+ENTRYPOINT ["dnsdock"]
+TAG tonistiigi/dnsdock:{{$Arch}}-{{$DNSDockVersion}}
+PUSH tonistiigi/dnsdock:{{$Arch}}-{{$DNSDockVersion}}
