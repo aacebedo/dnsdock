@@ -1,15 +1,22 @@
+sudo: required
+
 services:
   - docker
 
 before_install:
   - sudo apt-get update
   - sudo apt-get install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y --force-yes -q docker-engine
-  - docker build -t dnsdockbuild -f docker/build.dockerfile .
+  - wget https://github.com/grammarly/rocker/releases/download/1.2.0/rocker-1.2.0-linux_amd64.tar.gz -O /tmp/rocker.tar.gz 
+  - sudo tar -xvzf  /tmp/rocker.tar.gz -C /usr/local/bin && sudo chmod +x /usr/local/bin/rocker
   - sudo mkdir -m 777 -p /build/amd64 /build/arm
   
-script: 
-  - docker run -t -v `pwd`:/go/src/github.com/tonistiigi/dnsdock -v /build/dnsdock.amd64:/go/bin/dnsdock dnsdockbuild -c "export GO_ARCH=amd64; godep restore; cd src; go build -o ../dnsdock" 
-  - docker run -t -v `pwd`:/go/src/github.com/tonistiigi/dnsdock -v /build/dnsdock.arm:/go/bin/dnsdock dnsdockbuild -c "export GO_ARCH=arm; godep restore; cd src; go build -o ../dnsdock"
+script:
+  - if git describe --contains ${TRAVIS_COMMIT} &>/dev/null; then export VERSIONARGS="-var DNSDockVersion=`git describe --contains ${TRAVIS_COMMIT}`"; else unset VERSIONARGS; fi
+  - rocker build -var Arch=amd64 -var OutputDir=/build/amd64 ${VERSIONARGS} .
+  - if git describe --contains ${TRAVIS_COMMIT} &>/dev/null; then export VERSIONARGS="-var DNSDockVersion=`git describe --contains ${TRAVIS_COMMIT}`"; else unset VERSIONARGS; fi
+  - rocker build -var Arch=arm -var OutputDir=/build/arm ${VERSIONARGS} .
+  - sudo mv /build/amd64/dnsdock /build/dnsdock.amd64
+  - sudo mv /build/arm/dnsdock /build/dnsdock.arm
   
 deploy:
   - provider: releases
@@ -22,5 +29,8 @@ deploy:
     on:
       tags: true
   - provider: script
-    script: docker login -u $BINTRAY_USERNAME -p $BINTRAY_APIKEY -e $BINTRAY_EMAIL aacebedo-docker-cfdsnupdater.bintray.io && docker build --build-arg VERSION=$TRAVIS_BRANCH -f environments/run/Dockerfile.amd64 -t aacebedo/cfdnsupdater-amd64 . && docker tag aacebedo/cfdnsupdater-amd64 aacebedo-docker-cfdsnupdater.bintray.io/cfdnsupdater-amd64:$TRAVIS_BRANCH && docker push aacebedo-docker-cfdsnupdater.bintray.io/cfdnsupdater-amd64:$TRAVIS_BRANCH
+    script:  rocker build --auth $DOCKER_USER:$DOCKER_PASS --push rocker build -var Arch=arm -var ${VERSIONARGS} .
     on:
+  - provider: script
+    script:  rocker build --auth $DOCKER_USER:$DOCKER_PASS --push rocker build -var Arch=amd64 -var ${VERSIONARGS} .
+    on:    
