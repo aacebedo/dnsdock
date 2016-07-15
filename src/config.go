@@ -22,8 +22,26 @@ func (d *Domain) String() string {
 	return strings.Join([]string(*d), ".")
 }
 
+// type that knows how to parse CSV strings and store the values in a slice
+type nameservers []string
+
+func (n *nameservers) String() string {
+	return strings.Join(*n, " ")
+}
+
+// accumulate the CSV string of nameservers
+func (n *nameservers) Set(value string) error {
+	*n = nil
+	for _, ns := range strings.Split(value, ",") {
+		ns = strings.Trim(ns, " ")
+		*n = append(*n, ns)
+	}
+
+	return nil
+}
+
 type Config struct {
-	nameserver  string
+	nameserver  nameservers
 	dnsAddr     string
 	domain      Domain
 	dockerHost  string
@@ -49,7 +67,7 @@ func NewConfig() *Config {
 	}
 
 	return &Config{
-		nameserver:  "8.8.8.8:53",
+		nameserver: nameservers{"8.8.8.8:53"},
 		dnsAddr:     ":53",
 		domain:      NewDomain("docker"),
 		dockerHost:  dockerHost,
