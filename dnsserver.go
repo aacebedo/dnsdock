@@ -358,7 +358,7 @@ func (s *DNSServer) queryServices(query string) chan *Service {
 			test := []string{}
 			// todo: add some cache to avoid calculating this every time
 			if len(service.Name) > 0 {
-				test = append(test, strings.Split(service.Name, ".")...)
+				test = append(test, strings.Split(strings.ToLower(service.Name), ".")...)
 			}
 
 			if len(service.Image) > 0 {
