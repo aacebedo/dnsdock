@@ -54,7 +54,7 @@ func (d *DockerManager) Start() error {
 	}
 
 	renameHandler := func(m eventtypes.Message) {
-	  oldName, ok := m.Actor.Attributes["oldName"]
+		oldName, ok := m.Actor.Attributes["oldName"]
 		name, ok2 := m.Actor.Attributes["oldName"]
 		if ok && ok2 {
 			log.Printf("Renamed container '%s' into '%s'", oldName, name)
@@ -126,13 +126,16 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 		}
 		service.Ip = net.ParseIP(v[0].IPAddress)
 	}
-  
-  service = overrideFromLabels(service, desc.Config.Labels)
+
+	service = overrideFromLabels(service, desc.Config.Labels)
 	service = overrideFromEnv(service, splitEnv(desc.Config.Env))
 	if service == nil {
 		return nil, errors.New("Skipping " + id)
 	}
 
+	if d.config.createAlias {
+		service.Aliases = append(service.Aliases, service.Name)
+	}
 	return service, nil
 }
 
