@@ -17,7 +17,7 @@ script:
   - rocker build -var Arch=arm -var OutputDir=/build/arm ${VERSIONARGS} .
   - sudo mv /build/amd64/dnsdock /build/dnsdock.amd64
   - sudo mv /build/arm/dnsdock /build/dnsdock.arm
-  
+    
 deploy:
   - provider: releases
     skip_cleanup: true
@@ -31,6 +31,8 @@ deploy:
   - provider: script
     script:  rocker build --auth $DOCKER_USER:$DOCKER_PASS --push rocker build -var Arch=arm -var ${VERSIONARGS} .
     on:
+      tags: true
   - provider: script
     script:  rocker build --auth $DOCKER_USER:$DOCKER_PASS --push rocker build -var Arch=amd64 -var ${VERSIONARGS} .
-    on:    
+    on:
+      tags: true

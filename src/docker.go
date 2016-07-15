@@ -39,7 +39,7 @@ func (d *DockerManager) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	d.cancel = cancel
 	startHandler := func(m eventtypes.Message) {
-		log.Println("Started container '", m.ID, "'")
+		log.Printf("Started container '%s'", m.ID)
 		service, err := d.getService(m.ID)
 		if err != nil {
 			log.Println(err)
@@ -49,8 +49,23 @@ func (d *DockerManager) Start() error {
 	}
 
 	stopHandler := func(m eventtypes.Message) {
-		log.Println("Stopped container '", m.ID, "'")
+		log.Printf("Stopped container '%s'", m.ID)
 		d.list.RemoveService(m.ID)
+	}
+
+	renameHandler := func(m eventtypes.Message) {
+	  oldName, ok := m.Actor.Attributes["oldName"]
+		name, ok2 := m.Actor.Attributes["oldName"]
+		if ok && ok2 {
+			log.Printf("Renamed container '%s' into '%s'", oldName, name)
+			d.list.RemoveService(oldName)
+			service, err := d.getService(m.ID)
+			if err != nil {
+				log.Println(err)
+			} else {
+				d.list.AddService(m.ID, *service)
+			}
+		}
 	}
 
 	eventHandler := events.NewHandler(events.ByAction)
@@ -58,6 +73,7 @@ func (d *DockerManager) Start() error {
 	eventHandler.Handle("stop", stopHandler)
 	eventHandler.Handle("die", stopHandler)
 	eventHandler.Handle("kill", stopHandler)
+	eventHandler.Handle("rename", renameHandler)
 
 	events.MonitorWithHandler(ctx, d.client, types.EventsOptions{}, eventHandler)
 
