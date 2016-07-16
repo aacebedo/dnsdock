@@ -130,7 +130,7 @@
 		},
 		{
 			"ImportPath": "github.com/miekg/dns",
-			"Rev": "e0d84d97e59bcb6561eae269c4e94d25b66822cb"
+			"Rev": "5d001d020961ae1c184f9f8152fdc73810481677"
 		},
 		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer/user",
