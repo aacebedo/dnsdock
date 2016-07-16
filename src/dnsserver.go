@@ -12,19 +12,22 @@ import (
 	"github.com/miekg/dns"
 )
 
+// Service represents a container and an attached DNS record
 type Service struct {
 	Name    string
 	Image   string
-	Ip      net.IP
-	Ttl     int
+	IP      net.IP
+	TTL     int
 	Aliases []string
 }
 
+// NewService creates a new service
 func NewService() (s *Service) {
-	s = &Service{Ttl: -1}
+	s = &Service{TTL: -1}
 	return
 }
 
+// ServiceListProvider represents the entrypoint to get containers
 type ServiceListProvider interface {
 	AddService(string, Service)
 	RemoveService(string) error
@@ -32,6 +35,7 @@ type ServiceListProvider interface {
 	GetAllServices() map[string]Service
 }
 
+// DNSServer represents a DNS server
 type DNSServer struct {
 	config   *Config
 	server   *dns.Server
@@ -40,6 +44,7 @@ type DNSServer struct {
 	lock     *sync.RWMutex
 }
 
+// NewDNSServer create a new DNSServer
 func NewDNSServer(c *Config) *DNSServer {
 	s := &DNSServer{
 		config:   c,
@@ -61,14 +66,17 @@ func NewDNSServer(c *Config) *DNSServer {
 	return s
 }
 
+// Start starts the DNSServer
 func (s *DNSServer) Start() error {
 	return s.server.ListenAndServe()
 }
 
+// Stop stops the DNSServer
 func (s *DNSServer) Stop() {
 	s.server.Shutdown()
 }
 
+// AddService adds a new container and thus new DNS records
 func (s *DNSServer) AddService(id string, service Service) {
 	defer s.lock.Unlock()
 	s.lock.Lock()
@@ -88,6 +96,7 @@ func (s *DNSServer) AddService(id string, service Service) {
 	}
 }
 
+// RemoveService removes a new container and thus DNS records
 func (s *DNSServer) RemoveService(id string) error {
 	defer s.lock.Unlock()
 	s.lock.Lock()
@@ -110,6 +119,7 @@ func (s *DNSServer) RemoveService(id string) error {
 	return nil
 }
 
+// GetService reads a service from the repository
 func (s *DNSServer) GetService(id string) (Service, error) {
 	defer s.lock.RUnlock()
 	s.lock.RLock()
@@ -122,6 +132,7 @@ func (s *DNSServer) GetService(id string) (Service, error) {
 	return *new(Service), errors.New("No such service: " + id)
 }
 
+// GetAllServices reads all services from the repository
 func (s *DNSServer) GetAllServices() map[string]Service {
 	defer s.lock.RUnlock()
 	s.lock.RLock()
@@ -174,7 +185,6 @@ func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 		in, _, err := c.Exchange(r, s.config.nameserver[i])
 		if err == nil {
 			w.WriteMsg(in)
-			return
 		} else {
 			if i == (len(s.config.nameserver) - 1) {
 				log.Println("Error forwarding DNS: " + err.Error() + ": fatal, no more nameservers to try")
@@ -189,6 +199,7 @@ func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 
 			w.WriteMsg(m)
 		}
+		return
 	}
 }
 
@@ -196,8 +207,8 @@ func (s *DNSServer) makeServiceA(n string, service *Service) dns.RR {
 	rr := new(dns.A)
 
 	var ttl int
-	if service.Ttl != -1 {
-		ttl = service.Ttl
+	if service.TTL != -1 {
+		ttl = service.TTL
 	} else {
 		ttl = s.config.ttl
 	}
@@ -209,7 +220,7 @@ func (s *DNSServer) makeServiceA(n string, service *Service) dns.RR {
 		Ttl:    uint32(ttl),
 	}
 
-	rr.A = service.Ip
+	rr.A = service.IP
 
 	return rr
 }
@@ -218,8 +229,8 @@ func (s *DNSServer) makeServiceMX(n string, service *Service) dns.RR {
 	rr := new(dns.MX)
 
 	var ttl int
-	if service.Ttl != -1 {
-		ttl = service.Ttl
+	if service.TTL != -1 {
+		ttl = service.TTL
 	} else {
 		ttl = s.config.ttl
 	}
@@ -322,7 +333,7 @@ func (s *DNSServer) handleReverseRequest(w dns.ResponseWriter, r *dns.Msg) {
 		query = query[:len(query)-1]
 	}
 
-	for service := range s.queryIp(query) {
+	for service := range s.queryIP(query) {
 		if r.Question[0].Qtype != dns.TypePTR {
 			m.Ns = s.createSOA()
 			w.WriteMsg(m)
@@ -330,8 +341,8 @@ func (s *DNSServer) handleReverseRequest(w dns.ResponseWriter, r *dns.Msg) {
 		}
 
 		var ttl int
-		if service.Ttl != -1 {
-			ttl = service.Ttl
+		if service.TTL != -1 {
+			ttl = service.TTL
 		} else {
 			ttl = s.config.ttl
 		}
@@ -359,17 +370,17 @@ func (s *DNSServer) handleReverseRequest(w dns.ResponseWriter, r *dns.Msg) {
 	}
 }
 
-func (s *DNSServer) queryIp(query string) chan *Service {
+func (s *DNSServer) queryIP(query string) chan *Service {
 	c := make(chan *Service, 3)
-	reversedIp := strings.TrimSuffix(query, ".in-addr.arpa")
-	ip := strings.Join(reverse(strings.Split(reversedIp, ".")), ".")
+	reversedIP := strings.TrimSuffix(query, ".in-addr.arpa")
+	ip := strings.Join(reverse(strings.Split(reversedIP, ".")), ".")
 
 	go func() {
 		defer s.lock.RUnlock()
 		s.lock.RLock()
 
 		for _, service := range s.services {
-			if service.Ip.String() == ip {
+			if service.IP.String() == ip {
 				c <- service
 			}
 		}
@@ -449,7 +460,7 @@ func (s *DNSServer) getExpandedID(in string) (out string) {
 	return
 }
 
-// Ttl is used from config so that not-found result responses are not cached
+// TTL is used from config so that not-found result responses are not cached
 // for a long time. The other defaults left as is(skydns source) because they
 // do not have an use case in this situation.
 func (s *DNSServer) createSOA() []dns.RR {

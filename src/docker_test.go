@@ -89,7 +89,7 @@ func TestOverrideFromEnv(t *testing.T) {
 
 	s = getService()
 	s = overrideFromEnv(s, map[string]string{"DNSDOCK_NAME": "master", "DNSDOCK_IMAGE": "mysql", "DNSDOCK_TTL": "22"})
-	if s.Name != "master" || s.Image != "mysql" || s.Ttl != 22 {
+	if s.Name != "master" || s.Image != "mysql" || s.TTL != 22 {
 		t.Error("Invalid DNSDOCK override", s)
 	}
 

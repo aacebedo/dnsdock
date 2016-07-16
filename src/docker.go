@@ -17,6 +17,7 @@ import (
 	"golang.org/x/net/context"
 )
 
+// DockerManager is the entrypoint to the docker daemon
 type DockerManager struct {
 	config *Config
 	list   ServiceListProvider
@@ -24,6 +25,7 @@ type DockerManager struct {
 	cancel context.CancelFunc
 }
 
+// NewDockerManager creates a new DockerManager
 func NewDockerManager(c *Config, list ServiceListProvider, tlsConfig *tls.Config) (*DockerManager, error) {
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
 	dclient, err := client.NewClient(c.dockerHost, "v1.22", nil, defaultHeaders)
@@ -35,6 +37,7 @@ func NewDockerManager(c *Config, list ServiceListProvider, tlsConfig *tls.Config
 	return &DockerManager{config: c, list: list, client: dclient}, nil
 }
 
+// Start starts the DockerManager
 func (d *DockerManager) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	d.cancel = cancel
@@ -94,6 +97,7 @@ func (d *DockerManager) Start() error {
 	return nil
 }
 
+// Stop stops the DockerManager
 func (d *DockerManager) Stop() {
 	d.cancel()
 }
@@ -124,7 +128,7 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 		if len(v) > 1 {
 			log.Println("Warning, Multiple IP address found for container ", desc.Name, ". Only the first address will be used")
 		}
-		service.Ip = net.ParseIP(v[0].IPAddress)
+		service.IP = net.ParseIP(v[0].IPAddress)
 	}
 
 	service = overrideFromLabels(service, desc.Config.Labels)
@@ -208,7 +212,7 @@ func overrideFromLabels(in *Service, labels map[string]string) (out *Service) {
 
 		if k == "com.dnsdock.ttl" {
 			if ttl, err := strconv.Atoi(v); err == nil {
-				in.Ttl = ttl
+				in.TTL = ttl
 			}
 		}
 
@@ -253,7 +257,7 @@ func overrideFromEnv(in *Service, env map[string]string) (out *Service) {
 
 		if k == "DNSDOCK_TTL" {
 			if ttl, err := strconv.Atoi(v); err == nil {
-				in.Ttl = ttl
+				in.TTL = ttl
 			}
 		}
 

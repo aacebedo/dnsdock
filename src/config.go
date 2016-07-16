@@ -5,8 +5,10 @@ import (
 	"strings"
 )
 
+// Domain represents a domain 
 type Domain []string
 
+// NewDomain creates a new domain
 func NewDomain(s string) Domain {
 	s = strings.Replace(s, "..", ".", -1)
 	if s[:1] == "." {
@@ -40,6 +42,7 @@ func (n *nameservers) Set(value string) error {
 	return nil
 }
 
+// Config contains DNSDock configuration
 type Config struct {
 	nameserver  nameservers
 	dnsAddr     string
@@ -55,6 +58,7 @@ type Config struct {
 	createAlias bool
 }
 
+// NewConfig creates a new config
 func NewConfig() *Config {
 	dockerHost := os.Getenv("DOCKER_HOST")
 	if len(dockerHost) == 0 {

@@ -53,7 +53,7 @@ func main() {
 
 	dnsServer := NewDNSServer(config)
 
-	var tlsConfig *tls.Config = nil
+	var tlsConfig *tls.Config
 	if config.tlsVerify {
 		clientCert, err := tls.LoadX509KeyPair(config.tlsCert, config.tlsKey)
 		if err != nil {

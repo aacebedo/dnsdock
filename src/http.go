@@ -7,12 +7,14 @@ import (
 	"net/http"
 )
 
+// HTTPServer represents the http endpoint
 type HTTPServer struct {
 	config *Config
 	list   ServiceListProvider
 	server *http.Server
 }
 
+// NewHTTPServer create a new http endpoint
 func NewHTTPServer(c *Config, list ServiceListProvider) *HTTPServer {
 	s := &HTTPServer{
 		config: c,
@@ -33,6 +35,7 @@ func NewHTTPServer(c *Config, list ServiceListProvider) *HTTPServer {
 	return s
 }
 
+// Start starts the http endpoint
 func (s *HTTPServer) Start() error {
 	return s.server.ListenAndServe()
 }
@@ -91,7 +94,7 @@ func (s *HTTPServer) addService(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if service.Ip == nil {
+	if service.IP == nil {
 		http.Error(w, "Property \"ip\" is required", http.StatusInternalServerError)
 		return
 	}
@@ -138,7 +141,7 @@ func (s *HTTPServer) updateService(w http.ResponseWriter, req *http.Request) {
 
 	if ttl, ok := input["ttl"]; ok {
 		if value, ok := ttl.(float64); ok {
-			service.Ttl = int(value)
+			service.TTL = int(value)
 		}
 	}
 

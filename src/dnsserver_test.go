@@ -21,10 +21,10 @@ func TestDNSResponse(t *testing.T) {
 	// Allow some time for server to start
 	time.Sleep(250 * time.Millisecond)
 
-	server.AddService("foo", Service{Name: "foo", Image: "bar", Ip: net.ParseIP("127.0.0.1")})
-	server.AddService("baz", Service{Name: "baz", Image: "bar", Ip: net.ParseIP("127.0.0.1"), Ttl: -1})
-	server.AddService("biz", Service{Name: "hey", Image: "", Ip: net.ParseIP("127.0.0.4")})
-	server.AddService("joe", Service{Name: "joe", Image: "", Ip: net.ParseIP("127.0.0.5"), Aliases: []string{"lala.docker", "super-alias", "alias.domain"}})
+	server.AddService("foo", Service{Name: "foo", Image: "bar", IP: net.ParseIP("127.0.0.1")})
+	server.AddService("baz", Service{Name: "baz", Image: "bar", IP: net.ParseIP("127.0.0.1"), TTL: -1})
+	server.AddService("biz", Service{Name: "hey", Image: "", IP: net.ParseIP("127.0.0.4")})
+	server.AddService("joe", Service{Name: "joe", Image: "", IP: net.ParseIP("127.0.0.5"), Aliases: []string{"lala.docker", "super-alias", "alias.domain"}})
 
 	var inputs = []struct {
 		query    string
