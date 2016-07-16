@@ -155,8 +155,8 @@ func (s *DNSServer) listDomains(service *Service) chan string {
 		} else {
 			domain := service.Image + "." + s.config.domain.String() + "."
 
-			c <- domain
 			c <- service.Name + "." + domain
+			c <- domain
 		}
 
 		for _, alias := range service.Aliases {
