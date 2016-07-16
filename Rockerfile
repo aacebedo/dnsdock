@@ -21,18 +21,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-{{ $GolangVersion := (or .GolangVersion "1.6.2") }}
-{{ $Arch:= (or .Arch "amd64") }}
-{{ $DNSDockVersion:= (or .DNSDockVersion "dev") }}
-{{ $LdFlags:= (or .DNSDockVersion "-dirty") }}
-{{ $OutputDir:= (or .OutputDir ".") }}
+{{$GOLANG_VERSION := "1.6.2-r4"}}
+{{$ARCH:= (or .ARCH "amd64")}}
+{{$GIT_COMMIT:= (or .GIT_COMMIT "develop")}}
+{{$DOCKERIMAGE_VERSION:= (or .DOCKERIMAGE_VERSION "develop")}}
+{{$SRCDIR:= (or .SRCDIR ".")}}
 
 # build image
 FROM alpine
 
 RUN apk update
 RUN apk upgrade
-RUN apk add go>{{$GolangVersion}} git
+RUN apk add go>{{$GOLANG_VERSION}} go-tools>{{$GOLANG_VERSION}} git
 
 ENV GOPATH /go
 ENV CGO_ENABLED 0
@@ -41,24 +41,43 @@ ENV CGO_ENABLED=0
 
 RUN go get -v github.com/tools/godep
 
-ADD . /go/src/dnsdock
-MOUNT {{$OutputDir}}:/output
-WORKDIR /go/src/dnsdock
-RUN godep restore
-WORKDIR /go/src/dnsdock/src
 
-ENV GOARCH={{$Arch}}
-RUN go build -o /go/bin/dnsdock -ldflags "-X main.version {{$LdFlags}}"
-RUN cp /go/bin/dnsdock /output/dnsdock
-EXPORT /go/bin/dnsdock ./dnsdock
+{{if .SRCDIR}}
+  MOUNT {{$SRCDIR}}:/go/src/github.com/tonistiigi/dnsdock
+{{else}}
+  RUN go get github.com/tonistiigi/dnsdock
+  WORKDIR /go/src/github.com/tonistiigi/dnsdock
+  RUN git checkout {{$GIT_COMMIT}}
+{{end}}
+
+{{if .OUTPUTDIR}}
+  MOUNT {{.OUTPUTDIR}}:/tmp/output
+{{else}}
+  RUN mkdir /tmp/output
+{{end}}
+
+WORKDIR /go/src/github.com/tonistiigi/dnsdock
+RUN godep restore
+RUN go get -u github.com/golang/lint/golint
+
+ENV GOARCH={{$ARCH}}
+WORKDIR /go/src/github.com/tonistiigi/dnsdock/src
+ATTACH sh
+RUN go build -o /tmp/output/dnsdock -ldflags "-X main.version=$(if version=$(git describe --contains HEAD 2>/dev/null); then echo $version; else echo "dev"; fi)"
+RUN golint -set_exit_status
+{{if eq $ARCH "amd64"}}
+RUN go vet
+RUN go test
+{{end}}
+EXPORT /tmp/output/dnsdock ./dnsdock
 
 # run image
-{{ if eq $Arch "amd64" }}
+{{ if eq $ARCH "amd64" }}
 FROM alpine
 {{ else }}
 FROM easypi/alpine-arm
 {{ end }}
 IMPORT ./dnsdock /bin/dnsdock
 ENTRYPOINT ["dnsdock"]
-TAG tonistiigi/dnsdock:{{$Arch}}-{{$DNSDockVersion}}
-PUSH tonistiigi/dnsdock:{{$Arch}}-{{$DNSDockVersion}}
+TAG tonistiigi/dnsdock:{{$ARCH}}-{{$DOCKERIMAGE_VERSION}}
+PUSH tonistiigi/dnsdock:{{$ARCH}}-{{$DOCKERIMAGE_VERSION}}
