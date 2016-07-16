@@ -11,10 +11,9 @@ before_install:
   - sudo mkdir -m 777 -p /build/amd64 /build/arm
   
 script:
-  - if git describe --contains ${TRAVIS_COMMIT} &>/dev/null; then export VERSIONARGS="-var DNSDockVersion=`git describe --contains ${TRAVIS_COMMIT}`"; else unset VERSIONARGS; fi
-  - rocker build -var Arch=amd64 -var OutputDir=/build/amd64 ${VERSIONARGS} .
-  - if git describe --contains ${TRAVIS_COMMIT} &>/dev/null; then export VERSIONARGS="-var DNSDockVersion=`git describe --contains ${TRAVIS_COMMIT}`"; else unset VERSIONARGS; fi
-  - rocker build -var Arch=arm -var OutputDir=/build/arm ${VERSIONARGS} .
+  - if git describe --contains ${TRAVIS_COMMIT} &>/dev/null; then export VERSIONARGS="-var DOCKERIMAGE_VERSION=`git describe --contains ${TRAVIS_COMMIT}`"; else unset VERSIONARGS; fi
+  - rocker build --no-cache ${VERSIONARGS} -var GIT_COMMIT=${TRAVIS_COMMIT} -var OUTPUTDIR=/build/amd64 -var ARCH=amd64 .
+  - rocker build --no-cache ${VERSIONARGS} -var GIT_COMMIT=${TRAVIS_COMMIT} -var OUTPUTDIR=/build/arm -var ARCH=arm . 
   - sudo mv /build/amd64/dnsdock /build/dnsdock.amd64
   - sudo mv /build/arm/dnsdock /build/dnsdock.arm
     
