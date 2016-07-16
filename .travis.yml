@@ -1,8 +1,37 @@
-language: go
+sudo: required
 
-go:
-    - 1.6
+services:
+  - docker
 
-before_script:
-
-script: make test
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y --force-yes -q docker-engine
+  - wget https://github.com/grammarly/rocker/releases/download/1.2.0/rocker-1.2.0-linux_amd64.tar.gz -O /tmp/rocker.tar.gz 
+  - sudo tar -xvzf  /tmp/rocker.tar.gz -C /usr/local/bin && sudo chmod +x /usr/local/bin/rocker
+  - sudo mkdir -m 777 -p /build/amd64 /build/arm
+  
+script:
+  - if git describe --contains ${TRAVIS_COMMIT} &>/dev/null; then export VERSIONARGS="-var DOCKERIMAGE_VERSION=`git describe --contains ${TRAVIS_COMMIT}`"; else unset VERSIONARGS; fi
+  - rocker build --no-cache ${VERSIONARGS} -var GIT_COMMIT=${TRAVIS_COMMIT} -var OUTPUTDIR=/build/amd64 -var ARCH=amd64 .
+  - rocker build --no-cache ${VERSIONARGS} -var GIT_COMMIT=${TRAVIS_COMMIT} -var OUTPUTDIR=/build/arm -var ARCH=arm . 
+  - sudo mv /build/amd64/dnsdock /build/dnsdock.amd64
+  - sudo mv /build/arm/dnsdock /build/dnsdock.arm
+    
+deploy:
+  - provider: releases
+    skip_cleanup: true
+    api-key:
+       secure: $GITHUB_TOKEN
+    file:
+      - /build/dnsdock.amd64
+      - /build/dnsdock.arm
+    on:
+      tags: true
+  - provider: script
+    script:  rocker build --auth $DOCKER_USER:$DOCKER_PASS --push rocker build -var Arch=arm -var ${VERSIONARGS} .
+    on:
+      tags: true
+  - provider: script
+    script:  rocker build --auth $DOCKER_USER:$DOCKER_PASS --push rocker build -var Arch=amd64 -var ${VERSIONARGS} .
+    on:
+      tags: true

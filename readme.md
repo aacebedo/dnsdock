@@ -37,8 +37,32 @@ specific tag that was used when the container was created. This means that if a
 new version of an image comes out and untags the image that your container
 still uses, the DNS requests for this old container still work.
 
-#### Usage
+#### Build
 
+##### Building without docker:
+
+Install a golang development environment on your host and type the following commands:
+```
+export GOPATH=/tmp/go
+export PATH=${PATH}:${GOPATH}/bin
+go get -v github.com/tools/godep
+go get -d -v https://github.com/tonistiigi/dnsdock
+cd ${GOPATH}/src/github.com/tonistiigi/dnsdock
+godep restore
+cd ${GOPATH}/src/github.com/tonistiigi/dnsdock/src
+go build -o ${GOPATH}/bin/dnsdock
+```
+
+##### Building with docker:
+
+To build with docker you need [rocker](https://github.com/grammarly/rocker). Check the
+website to install it and type the following commands:
+```
+if git describe --contains HEAD &>/dev/null; then export VERSIONARGS="-var DNSDockVersion=`git describe --contains HEAD`"; else unset VERSIONARGS; fi
+rocker build -var Arch=[amd64|arm] ${VERSIONARGS} -var OutputDir=<outputdir> .
+```
+
+#### Usage
 Dnsdock connects to Docker Remote API and keeps an up to date list of running
 containers. If a DNS request matches some of the containers their local IP
 addresses are returned.
