@@ -73,12 +73,6 @@ func TestDNSResponse(t *testing.T) {
 			break
 		}
 
-		if len(r.Answer) == 0 {
-			if _, ok := r.Ns[0].(*dns.SOA); !ok {
-				t.Error(input, "No SOA answer")
-			}
-		}
-
 		if input.expected > 0 && len(r.Answer) != input.expected {
 			t.Error(input, "Expected:", input.expected,
 				" Got:", len(r.Answer))
