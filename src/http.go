@@ -41,6 +41,9 @@ func (s *HTTPServer) Start() error {
 }
 
 func (s *HTTPServer) getServices(w http.ResponseWriter, req *http.Request) {
+
+        w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
 	if err := json.NewEncoder(w).Encode(s.list.GetAllServices()); err != nil {
 		log.Println("Error encoding: ", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -49,6 +52,8 @@ func (s *HTTPServer) getServices(w http.ResponseWriter, req *http.Request) {
 
 func (s *HTTPServer) getService(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
+
+        w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	id, ok := vars["id"]
 	if !ok {
