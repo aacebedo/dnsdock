@@ -24,8 +24,8 @@
 {{$GOLANG_VERSION := "1.6.2-r4"}}
 {{$ARCH:= (or .ARCH "amd64")}}
 {{$GIT_COMMIT:= (or .GIT_COMMIT "develop")}}
-{{$DOCKERIMAGE_VERSION:= (or .DOCKERIMAGE_VERSION "develop")}}
-{{$SRCDIR:= (or .SRCDIR ".")}}
+{{$DOCKERIMAGE_VERSION:= (or .DOCKERIMAGE_VERSION "dev")}}
+{{$SRC_DIR:= (or .SRC_DIR ".")}}
 
 # build image
 FROM alpine
@@ -41,27 +41,27 @@ ENV CGO_ENABLED=0
 
 RUN go get -v github.com/tools/godep
 
-RUN mkdir -p /go/src/github.com/tonistiigi/dnsdock
-WORKDIR /go/src/github.com/tonistiigi/dnsdock
-{{if .SRCDIR}}
-  MOUNT {{$SRCDIR}}:/go/src/github.com/tonistiigi/dnsdock
+RUN mkdir -p /go/src/github.com/aacebedo/dnsdock
+WORKDIR /go/src/github.com/aacebedo/dnsdock
+{{if .SRC_DIR}}
+  MOUNT {{$SRC_DIR}}:/go/src/github.com/aacebedo/dnsdock
 {{else}}
-  RUN git clone https://github.com/tonistiigi/dnsdock /go/src/github.com/tonistiigi/dnsdock 
+  RUN git clone https://github.com/aacebedo/dnsdock /go/src/github.com/aacebedo/dnsdock 
   RUN git checkout {{$GIT_COMMIT}}
 {{end}}
 
-{{if .OUTPUTDIR}}
-  MOUNT {{.OUTPUTDIR}}:/tmp/output
+{{if .OUTPUT_DIR}}
+  MOUNT {{.OUTPUT_DIR}}:/tmp/output
 {{else}}
   RUN mkdir /tmp/output
 {{end}}
 
-WORKDIR /go/src/github.com/tonistiigi/dnsdock
+WORKDIR /go/src/github.com/aacebedo/dnsdock
 RUN godep restore
 RUN go get -u github.com/golang/lint/golint
 
 ENV GOARCH={{$ARCH}}
-WORKDIR /go/src/github.com/tonistiigi/dnsdock/src
+WORKDIR /go/src/github.com/aacebedo/dnsdock/src
 ATTACH sh
 RUN go build -o /tmp/output/dnsdock -ldflags "-X main.version=$(if version=$(git describe --contains HEAD 2>/dev/null); then echo $version; else echo "dev"; fi)"
 RUN golint -set_exit_status
@@ -72,12 +72,17 @@ RUN go test
 EXPORT /tmp/output/dnsdock ./dnsdock
 
 # run image
-{{ if eq $ARCH "amd64" }}
+{{if eq $ARCH "amd64"}}
 FROM alpine
-{{ else }}
+{{else}}
 FROM easypi/alpine-arm
-{{ end }}
+{{end}}
 IMPORT ./dnsdock /bin/dnsdock
 ENTRYPOINT ["dnsdock"]
-TAG tonistiigi/dnsdock:{{$ARCH}}-{{$DOCKERIMAGE_VERSION}}
-PUSH tonistiigi/dnsdock:{{$ARCH}}-{{$DOCKERIMAGE_VERSION}}
+TAG aacebedo/dnsdock:{{$DOCKERIMAGE_VERSION}}-{{$ARCH}}
+PUSH aacebedo/dnsdock:{{$DOCKERIMAGE_VERSION}}-{{$ARCH}}
+
+{{if ne $DOCKERIMAGE_VERSION "dev"}}
+TAG aacebedo/dnsdock:latest-{{$ARCH}}
+PUSH aacebedo/dnsdock:latest-{{$ARCH}}
+{{end}}
