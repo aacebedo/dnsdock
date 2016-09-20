@@ -172,6 +172,7 @@ func (s *DNSServer) listDomains(service *Service) chan string {
 func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 	if s.config.verbose {
 		log.Println("Using DNS forwarding for " + r.Question[0].Name)
+		log.Println("Forwarding DNS nameservers: " + s.config.nameserver.String())
 	}
 	// Otherwise just forward the request to another server
 	c := new(dns.Client)
@@ -185,21 +186,22 @@ func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 		in, _, err := c.Exchange(r, s.config.nameserver[i])
 		if err == nil {
 			w.WriteMsg(in)
-		} else {
-			if i == (len(s.config.nameserver) - 1) {
-				log.Println("Error forwarding DNS: " + err.Error() + ": fatal, no more nameservers to try")
-			} else {
-				log.Println("Error forwarding DNS: " + err.Error() + ": trying next nameserver")
-			}
+			return
+		}
 
+		if i == (len(s.config.nameserver) - 1) {
+			log.Println("Error forwarding DNS: " + err.Error() + ": fatal, no more nameservers to try")
+
+			// Send failure reply
 			m := new(dns.Msg)
 			m.SetReply(r)
 			m.Ns = s.createSOA()
 			m.SetRcode(r, dns.RcodeRefused) // REFUSED
-
 			w.WriteMsg(m)
+
+		} else {
+			log.Println("Error forwarding DNS: " + err.Error() + ": trying next nameserver...")
 		}
-		return
 	}
 }
 
