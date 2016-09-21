@@ -35,9 +35,8 @@ RUN apk upgrade
 RUN apk add go>{{$GOLANG_VERSION}} go-tools>{{$GOLANG_VERSION}} git
 
 ENV GOPATH /go
-ENV CGO_ENABLED 0
 ENV PATH ${PATH}:/go/bin
-ENV CGO_ENABLED=0
+ENV CGO_ENABLED 0
 
 RUN go get -v github.com/tools/godep
 
