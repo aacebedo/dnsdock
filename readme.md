@@ -210,7 +210,7 @@ curl http://dnsdock.docker/set/ttl -X PUT --data-ascii '10'
 ```
 
 
-#### Overrides from ENV metadata
+#### Overrides from ENV metadata (DEPRECATED WILL BE REMOVED IN NEXT RELEASE)
 
 If you wish to fine tune the DNS response addresses you can define specific
 environment variables during container startup. This overrides the default
@@ -230,17 +230,39 @@ docker run -e DNSDOCK_ALIAS=db.docker,sql.docker -e DNSDOCK_TTL=10 \
 # matches db.docker and sql.docker
 ```
 
+#### Overrides with docker labels
+
+If you wish to fine tune the DNS response addresses you can define specific labels during 
+container creation. This overrides the default matching scheme from container and image name.
+
+Supported labels are `com.dnsdock.ignore`, `com.dnsdock.alias`, `com.dnsdock.name`, `com.dnsdock.tags`, `com.dnsdock.image`,
+`com.dnsdock.ttl`, `com.dnsdock.region`, and `com.dnsdock.ip_addr`
+
+```
+docker run -l com.dnsdock.name=master -l com.dnsdocker.image=mysql -l com.dnsdock.ttl=10 \
+           --name mymysql mysqlimage
+# matches master.mysql.docker
+```
+
+```
+docker run -l com.dnsdock.alias=db.docker,sql.docker -l com.dnsdock.ttl=10 \
+           --name mymysql mysqlimage
+# matches db.docker and sql.docker
+```
+
 Service metadata syntax by [progrium/registrator](https://github.com/progrium/registrator) is also supported.
 
 ```
-docker run -e SERVICE_TAGS=master -e SERVICE_NAME=mysql -e SERVICE_REGION=us2 \
+docker run -l com.dnsdock.tags=master -l com.dnsdock.name=mysql -l com.dnsdock.region=us2 \
            --name mymysql mysqlimage
 # matches master.mysql.us2.docker
 ```
 
 If you want dnsdock to skip processing a specific container set its
-`DNSDOCK_IGNORE` or `SERVICE_IGNORE` environment variable.
+`com.dnsdock.ignore` label.
 
+You can force the value of the IP address returned in the DNS record with the 
+`com.dnsdock.ip_address` label. This can be useful if you have a reverse proxy such as traefik in a container with mapped port and you want to redirect your clients to the front server instead of an internal docker container ip address.
 
 #### OSX Usage
 
