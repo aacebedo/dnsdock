@@ -219,6 +219,13 @@ func overrideFromLabels(in *Service, labels map[string]string) (out *Service) {
 		if k == "com.dnsdock.region" {
 			region = v
 		}
+		
+		if k == "com.dnsdock.ip_addr" {
+			ipAddr := net.ParseIP(v)
+			if ipAddr != nil {
+  			in.IP = ipAddr 
+			}
+		}
 	}
 
 	if len(region) > 0 {
@@ -263,6 +270,13 @@ func overrideFromEnv(in *Service, env map[string]string) (out *Service) {
 
 		if k == "SERVICE_REGION" {
 			region = v
+		}
+		
+		if k == "DNSDOCK_IPADDRESS" {
+			ipAddr := net.ParseIP(v)
+			if ipAddr != nil {
+  			in.IP = ipAddr 
+			}
 		}
 	}
 
