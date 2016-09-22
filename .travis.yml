@@ -1,12 +1,12 @@
 sudo: required
-language: generic
+language: c
 
 services:
   - docker
 
 before_install:
   - sudo apt-get update
-  - sudo apt-get install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y --force-yes -q docker-engine
+  - sudo apt-get install -qy docker-engine
   - wget https://github.com/grammarly/rocker/releases/download/1.3.0/rocker_linux_amd64.tar.gz -O /tmp/rocker.tar.gz 
   - sudo tar -xvzf  /tmp/rocker.tar.gz -C /usr/local/bin && sudo chmod +x /usr/local/bin/rocker
   - sudo mkdir -m 777 -p /build/amd64 /build/arm
