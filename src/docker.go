@@ -117,18 +117,33 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 		service.Image = ""
 	}
 	service.Name = cleanContainerName(desc.Name)
+
+	prefix := ""
+	if v, ok := desc.Config.Labels["com.dnsdock.prefix"]; ok {
+		prefix = v;
+	}
+	if v, ok := splitEnv(desc.Config.Env)["DNSDOCK_PREFIX"]; ok {
+		prefix = v;
+	}
+
 	switch len(desc.NetworkSettings.Networks) {
 	case 0:
 		log.Println("Warning, no IP address found for container ", desc.Name)
 	default:
 		v := make([]*network.EndpointSettings, 0, len(desc.NetworkSettings.Networks))
 		for _, value := range desc.NetworkSettings.Networks {
-			v = append(v, value)
+			if prefix == "" || strings.HasPrefix(value.IPAddress, prefix) {
+				v = append(v, value)
+			}
 		}
 		if len(v) > 1 {
 			log.Println("Warning, Multiple IP address found for container ", desc.Name, ". Only the first address will be used")
+			service.IP = net.ParseIP(v[0].IPAddress)
+		} else if len(v) == 0 {
+			log.Println("Warning, no valid IP address found for container ", desc.Name)
+		} else {
+			service.IP = net.ParseIP(v[0].IPAddress)
 		}
-		service.IP = net.ParseIP(v[0].IPAddress)
 	}
 
 	service = overrideFromLabels(service, desc.Config.Labels)
