@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 )
 
@@ -27,7 +26,6 @@ func main() {
 	flag.StringVar(&config.tlsCaCert, "tlscacert", config.tlsCaCert, "Path to CA certificate")
 	flag.StringVar(&config.tlsCert, "tlscert", config.tlsCert, "Path to client certificate")
 	flag.StringVar(&config.tlsKey, "tlskey", config.tlsKey, "Path to client certificate private key")
-	flag.BoolVar(&config.verbose, "verbose", true, "Verbose output")
 	flag.IntVar(&config.ttl, "ttl", config.ttl, "TTL for matched requests")
 	flag.BoolVar(&config.createAlias, "create-alias", config.createAlias, "Automatically create an alias with just the container name.")
 
@@ -37,6 +35,8 @@ func main() {
 	}
 
 	flag.Parse()
+
+  InitLoggers(true,false)
 
 	if showVersion {
 		fmt.Println("dnsdock", version)
@@ -57,7 +57,7 @@ func main() {
 	if config.tlsVerify {
 		clientCert, err := tls.LoadX509KeyPair(config.tlsCert, config.tlsKey)
 		if err != nil {
-			log.Fatal(err)
+		  logger.Fatalf("Error: '%s'", err)
 		}
 		tlsConfig = &tls.Config{
 			MinVersion:   tls.VersionTLS12,
@@ -69,26 +69,26 @@ func main() {
 			rootCert.AppendCertsFromPEM(pemData)
 			tlsConfig.RootCAs = rootCert
 		} else {
-			log.Print(err)
+		  logger.Fatalf("Error: '%s'", err)
 		}
 	}
 	docker, err := NewDockerManager(config, dnsServer, tlsConfig)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatalf("Error: '%s'", err)
 	}
 	if err := docker.Start(); err != nil {
-		log.Fatal(err)
+		logger.Fatalf("Error: '%s'", err)
 	}
 
 	httpServer := NewHTTPServer(config, dnsServer)
 	go func() {
 		if err := httpServer.Start(); err != nil {
-			log.Fatal(err)
+			logger.Fatalf("Error: '%s'", err)
 		}
 	}()
 
 	if err := dnsServer.Start(); err != nil {
-		log.Fatal(err)
+		logger.Fatalf("Error: '%s'", err)
 	}
 
 }

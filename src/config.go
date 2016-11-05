@@ -51,8 +51,7 @@ type Config struct {
 	tlsVerify   bool
 	tlsCaCert   string
 	tlsCert     string
-	tlsKey      string
-	verbose     bool
+	tlsKey      string	
 	httpAddr    string
 	ttl         int
 	createAlias bool
