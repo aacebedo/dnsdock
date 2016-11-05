@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"log"
 	"net"
 	"regexp"
 	"strings"
@@ -52,9 +51,7 @@ func NewDNSServer(c *Config) *DNSServer {
 		lock:     &sync.RWMutex{},
 	}
 
-	if s.config.verbose {
-		log.Println("Handling DNS requests for " + c.domain.String() + ".")
-	}
+	logger.Debugf("Handling DNS requests for '%s'.", c.domain.String())	
 
 	s.mux = dns.NewServeMux()
 	s.mux.HandleFunc(c.domain.String()+".", s.handleRequest)
@@ -84,19 +81,15 @@ func (s *DNSServer) AddService(id string, service Service) {
   
   	id = s.getExpandedID(id)
   	s.services[id] = &service
-  
-  	if s.config.verbose {
-  		log.Println("Added service:", id, service)
-  	}
+  	
+  	logger.Debugf("Added service: '%s': %s.", id, service)
   
   	for _, alias := range service.Aliases {
-  		if s.config.verbose {
-  			log.Println("Handling DNS requests for " + alias + ".")
-  		}
+  	  logger.Debugf("Handling DNS requests for '%s'.", alias)  		
   		s.mux.HandleFunc(alias+".", s.handleRequest)
   	}
   } else {
-    log.Println("Service '"+id+"' ignored: No IP provided:", id)
+    logger.Warningf("Service '%s' ignored: No IP provided:", id, id)
   }
 }
 
@@ -116,9 +109,7 @@ func (s *DNSServer) RemoveService(id string) error {
 
 	delete(s.services, id)
 
-	if s.config.verbose {
-		log.Println("Stopped service:", id)
-	}
+	logger.Debugf("Stopped service '%s'", id)
 
 	return nil
 }
@@ -174,18 +165,16 @@ func (s *DNSServer) listDomains(service *Service) chan string {
 }
 
 func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
-	if s.config.verbose {
-		log.Println("Using DNS forwarding for " + r.Question[0].Name)
-		log.Println("Forwarding DNS nameservers: " + s.config.nameserver.String())
-	}
+	
+	logger.Debugf("Using DNS forwarding for '%s'",r.Question[0].Name)
+	logger.Debugf("Forwarding DNS nameservers: %s",s.config.nameserver.String())
+	
 	// Otherwise just forward the request to another server
 	c := new(dns.Client)
 
 	// look at each nameserver, stop on success
 	for i := range s.config.nameserver {
-		if s.config.verbose {
-			log.Println("Using nameserver " + s.config.nameserver[i])
-		}
+	  logger.Debugf("Using nameserver %s", s.config.nameserver[i])
 
 		in, _, err := c.Exchange(r, s.config.nameserver[i])
 		if err == nil {
@@ -194,7 +183,7 @@ func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 		}
 
 		if i == (len(s.config.nameserver) - 1) {
-			log.Println("Error forwarding DNS: " + err.Error() + ": fatal, no more nameservers to try")
+		  logger.Fatalf("DNS fowarding for '%s' failed: no more nameservers to try", err.Error())
 
 			// Send failure reply
 			m := new(dns.Msg)
@@ -204,7 +193,7 @@ func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 			w.WriteMsg(m)
 
 		} else {
-			log.Println("Error forwarding DNS: " + err.Error() + ": trying next nameserver...")
+		  logger.Errorf("DNS fowarding for '%s' failed: trying next nameserver...", err.Error())
 		}
 	}
 }
@@ -228,11 +217,11 @@ func (s *DNSServer) makeServiceA(n string, service *Service) dns.RR {
 
 	if len(service.IPs) != 0  {		  
   	if len(service.IPs) > 1 {
-    	log.Println("Warning, Multiple IP address found for container ", service.Name, ". Only the first address will be used")
+  	  logger.Warningf("Multiple IP address found for container '%s'. Only the first address will be used", service.Name)
   	}
   	rr.A = service.IPs[0]
 	} else {
-    log.Println("Warning, no valid IP address found for container ", service.Name)
+	  logger.Errorf("No valid IP address found for container ", service.Name)
 	}
 	
 	return rr
@@ -287,9 +276,7 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		query = query[:len(query)-1]
 	}
 
-	if s.config.verbose {
-		log.Println("DNS request for query " + query + " from remote " + w.RemoteAddr().String())
-	}
+  logger.Debugf("DNS request for query '%s' from remote '%s'", w.RemoteAddr().String(), w.RemoteAddr())
 
 	for service := range s.queryServices(query) {
 		var rr dns.RR
@@ -308,9 +295,8 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			return
 		}
 
-		if s.config.verbose {
-			log.Println("DNS record found for " + query)
-		}
+    logger.Debugf("DNS record found for query '%s'",query)
+		
 		m.Answer = append(m.Answer, rr)
 	}
 
@@ -318,9 +304,7 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	if len(m.Answer) == 0 {
 		m.Ns = s.createSOA()
 		m.SetRcode(r, dns.RcodeNameError) // NXDOMAIN
-		if s.config.verbose {
-			log.Println("No DNS record found for " + query)
-		}
+		logger.Debugf("No DNS record found for query '%s'",query)
 	}
 
 	w.WriteMsg(m)

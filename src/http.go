@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"log"
 	"net/http"
 )
 
@@ -45,16 +44,15 @@ func (s *HTTPServer) getServices(w http.ResponseWriter, req *http.Request) {
         w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	if err := json.NewEncoder(w).Encode(s.list.GetAllServices()); err != nil {
-		log.Println("Error encoding: ", err)
+	  logger.Errorf("Encoding error: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func (s *HTTPServer) getService(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-
-        w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-
+  w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+  
 	id, ok := vars["id"]
 	if !ok {
 		http.Error(w, "ID required", http.StatusBadRequest)
@@ -68,7 +66,7 @@ func (s *HTTPServer) getService(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(service); err != nil {
-		log.Println("Error: ", err)
+		logger.Errorf("Encoding error: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -84,7 +82,7 @@ func (s *HTTPServer) addService(w http.ResponseWriter, req *http.Request) {
 
 	service := NewService()
 	if err := json.NewDecoder(req.Body).Decode(&service); err != nil {
-		log.Println("Error decoding JSON: ", err)
+		logger.Errorf("JSON decoding error: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -139,7 +137,7 @@ func (s *HTTPServer) updateService(w http.ResponseWriter, req *http.Request) {
 
 	var input map[string]interface{}
 	if err := json.NewDecoder(req.Body).Decode(&input); err != nil {
-		log.Println("Error decoding JSON: ", err)
+	  logger.Errorf("JSON decoding error: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -177,7 +175,7 @@ func (s *HTTPServer) updateService(w http.ResponseWriter, req *http.Request) {
 func (s *HTTPServer) setTTL(w http.ResponseWriter, req *http.Request) {
 	var value int
 	if err := json.NewDecoder(req.Body).Decode(&value); err != nil {
-		log.Println("Error decoding value: ", err)
+		logger.Errorf("Decoding error: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

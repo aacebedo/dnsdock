@@ -7,7 +7,6 @@ import (
 	"github.com/docker/engine-api/types"
 	eventtypes "github.com/docker/engine-api/types/events"
 	"github.com/vdemeester/docker-events"
-	"log"
 	"net"
 	"regexp"
 	"strconv"
@@ -41,17 +40,17 @@ func (d *DockerManager) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	d.cancel = cancel
 	startHandler := func(m eventtypes.Message) {
-		log.Printf("Started container '%s'", m.ID)
+	  logger.Debugf("Started container '%s'", m.ID)
 		service, err := d.getService(m.ID)
 		if err != nil {
-			log.Println(err)
+		  logger.Errorf("%s", err)
 		} else {
 			d.list.AddService(m.ID, *service)
 		}
 	}
 
 	stopHandler := func(m eventtypes.Message) {
-		log.Printf("Stopped container '%s'", m.ID)
+	  logger.Debugf("Stopped container '%s'", m.ID)
 		d.list.RemoveService(m.ID)
 	}
 
@@ -59,11 +58,11 @@ func (d *DockerManager) Start() error {
 		oldName, ok := m.Actor.Attributes["oldName"]
 		name, ok2 := m.Actor.Attributes["oldName"]
 		if ok && ok2 {
-			log.Printf("Renamed container '%s' into '%s'", oldName, name)
+		  logger.Debugf("Renamed container '%s' into '%s'", oldName, name)
 			d.list.RemoveService(oldName)
 			service, err := d.getService(m.ID)
 			if err != nil {
-				log.Println(err)
+			  logger.Errorf("%s", err)
 			} else {
 				d.list.AddService(m.ID, *service)
 			}
@@ -87,7 +86,7 @@ func (d *DockerManager) Start() error {
 	for _, container := range containers {
 		service, err := d.getService(container.ID)
 		if err != nil {
-			log.Println(err)
+			logger.Errorf("%s", err)
 			continue
 		}
 		d.list.AddService(container.ID, *service)
@@ -112,14 +111,14 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 
 	service.Image = getImageName(desc.Config.Image)
 	if imageNameIsSHA(service.Image, desc.Image) {
-		log.Println("Warning: Can't route ", id[:10], ", image", service.Image, "is not a tag.")
+	  logger.Warningf("Warning: Can't route %s, image %s is not a tag.", id[:10], service.Image)
 		service.Image = ""
 	}
 	service.Name = cleanContainerName(desc.Name)
 
 	switch len(desc.NetworkSettings.Networks) {
 	case 0:
-		log.Println("Warning, no IP address found for container ", desc.Name)
+  	logger.Warningf("Warning, no IP address found for container '%s' ", desc.Name)
 	default:
 		for _, value := range desc.NetworkSettings.Networks {
 		  ip := net.ParseIP(value.IPAddress)
@@ -229,10 +228,7 @@ func overrideFromLabels(in *Service, labels map[string]string) (out *Service) {
 		if k == "com.dnsdock.prefix" {
 		  addrs := make([]net.IP, 0)
 		  for _, value := range in.IPs {
-		    log.Printf(value.String())
-		    log.Printf(v)
-  			
-  			if strings.HasPrefix(value.String(), v) {
+		    if strings.HasPrefix(value.String(), v) {
    				addrs = append(addrs, value)
    			}
   		}
