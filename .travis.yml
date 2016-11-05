@@ -15,8 +15,12 @@ script:
   - if git describe --contains ${TRAVIS_COMMIT} &>/dev/null; then export VERSIONARGS="-var DOCKERIMAGE_VERSION=`git describe --contains ${TRAVIS_COMMIT}`"; else unset VERSIONARGS; fi
   - rocker build --no-cache ${VERSIONARGS} -var GIT_COMMIT=${TRAVIS_COMMIT} -var OUTPUT_DIR=/build/amd64 -var ARCH=amd64 .
   - rocker build --no-cache ${VERSIONARGS} -var GIT_COMMIT=${TRAVIS_COMMIT} -var OUTPUT_DIR=/build/arm -var ARCH=arm . 
+
+after_success:
   - sudo mv /build/amd64/dnsdock /build/dnsdock.amd64
   - sudo mv /build/arm/dnsdock /build/dnsdock.arm
+  - sudo chmod -R a+rw /build
+  - sudo chmod a+rx ./deploy_containers.sh
     
 deploy:
   - provider: releases
@@ -34,10 +38,10 @@ deploy:
     on:
       tags: true
   - provider: script
-    script:  rocker build --auth $DOCKER_USER:$DOCKER_PASSWORD --push rocker build -var Arch=arm -var ${VERSIONARGS} .
+    script: rocker build --auth $DOCKER_USER:$DOCKER_PASSWORD --push -var GIT_COMMIT=${TRAVIS_COMMIT} ${VERSIONARGS} -var ARCH=amd64 .
     on:
       tags: true
   - provider: script
-    script:  rocker build --auth $DOCKER_USER:$DOCKER_PASSWORD --push rocker build -var Arch=amd64 -var ${VERSIONARGS} .
+    script: rocker build --auth $DOCKER_USER:$DOCKER_PASSWORD --push -var GIT_COMMIT=${TRAVIS_COMMIT} ${VERSIONARGS} -var ARCH=arm .
     on:
       tags: true

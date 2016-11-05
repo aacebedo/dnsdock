@@ -6,7 +6,6 @@ import (
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	eventtypes "github.com/docker/engine-api/types/events"
-	"github.com/docker/engine-api/types/network"
 	"github.com/vdemeester/docker-events"
 	"log"
 	"net"
@@ -117,18 +116,17 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 		service.Image = ""
 	}
 	service.Name = cleanContainerName(desc.Name)
+
 	switch len(desc.NetworkSettings.Networks) {
 	case 0:
 		log.Println("Warning, no IP address found for container ", desc.Name)
 	default:
-		v := make([]*network.EndpointSettings, 0, len(desc.NetworkSettings.Networks))
 		for _, value := range desc.NetworkSettings.Networks {
-			v = append(v, value)
+		  ip := net.ParseIP(value.IPAddress)
+		  if ip != nil {
+  		  service.IPs = append(service.IPs,ip)
+		  }
 		}
-		if len(v) > 1 {
-			log.Println("Warning, Multiple IP address found for container ", desc.Name, ". Only the first address will be used")
-		}
-		service.IP = net.ParseIP(v[0].IPAddress)
 	}
 
 	service = overrideFromLabels(service, desc.Config.Labels)
@@ -223,9 +221,23 @@ func overrideFromLabels(in *Service, labels map[string]string) (out *Service) {
 		if k == "com.dnsdock.ip_addr" {
 			ipAddr := net.ParseIP(v)
 			if ipAddr != nil {
-  			in.IP = ipAddr 
+			  in.IPs = in.IPs[:0]
+  			in.IPs = append(in.IPs, ipAddr) 
 			}
 		}
+		
+		if k == "com.dnsdock.prefix" {
+		  addrs := make([]net.IP, 0)
+		  for _, value := range in.IPs {
+		    log.Printf(value.String())
+		    log.Printf(v)
+  			
+  			if strings.HasPrefix(value.String(), v) {
+   				addrs = append(addrs, value)
+   			}
+  		}
+		  in.IPs = addrs
+  	}
 	}
 
 	if len(region) > 0 {
@@ -275,9 +287,20 @@ func overrideFromEnv(in *Service, env map[string]string) (out *Service) {
 		if k == "DNSDOCK_IPADDRESS" {
 			ipAddr := net.ParseIP(v)
 			if ipAddr != nil {
-  			in.IP = ipAddr 
+			  in.IPs = in.IPs[:0]
+  			in.IPs = append(in.IPs, ipAddr) 
 			}
 		}
+		
+		if k == "DNSDOCK_PREFIX" {
+		  addrs := make([]net.IP, 0)
+		  for _, value := range in.IPs {
+		    if strings.HasPrefix(value.String(), v) {
+   				addrs = append(addrs, value)
+   			}
+  		}
+		  in.IPs = addrs
+  	}
 	}
 
 	if len(region) > 0 {

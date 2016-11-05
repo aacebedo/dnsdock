@@ -16,7 +16,7 @@ import (
 type Service struct {
 	Name    string
 	Image   string
-	IP      net.IP
+	IPs     []net.IP
 	TTL     int
 	Aliases []string
 }
@@ -78,22 +78,26 @@ func (s *DNSServer) Stop() {
 
 // AddService adds a new container and thus new DNS records
 func (s *DNSServer) AddService(id string, service Service) {
-	defer s.lock.Unlock()
-	s.lock.Lock()
-
-	id = s.getExpandedID(id)
-	s.services[id] = &service
-
-	if s.config.verbose {
-		log.Println("Added service:", id, service)
-	}
-
-	for _, alias := range service.Aliases {
-		if s.config.verbose {
-			log.Println("Handling DNS requests for " + alias + ".")
-		}
-		s.mux.HandleFunc(alias+".", s.handleRequest)
-	}
+  if len(service.IPs) > 0 {
+  	defer s.lock.Unlock()
+  	s.lock.Lock()
+  
+  	id = s.getExpandedID(id)
+  	s.services[id] = &service
+  
+  	if s.config.verbose {
+  		log.Println("Added service:", id, service)
+  	}
+  
+  	for _, alias := range service.Aliases {
+  		if s.config.verbose {
+  			log.Println("Handling DNS requests for " + alias + ".")
+  		}
+  		s.mux.HandleFunc(alias+".", s.handleRequest)
+  	}
+  } else {
+    log.Println("Service '"+id+"' ignored: No IP provided:", id)
+  }
 }
 
 // RemoveService removes a new container and thus DNS records
@@ -222,8 +226,15 @@ func (s *DNSServer) makeServiceA(n string, service *Service) dns.RR {
 		Ttl:    uint32(ttl),
 	}
 
-	rr.A = service.IP
-
+	if len(service.IPs) != 0  {		  
+  	if len(service.IPs) > 1 {
+    	log.Println("Warning, Multiple IP address found for container ", service.Name, ". Only the first address will be used")
+  	}
+  	rr.A = service.IPs[0]
+	} else {
+    log.Println("Warning, no valid IP address found for container ", service.Name)
+	}
+	
 	return rr
 }
 
@@ -382,7 +393,7 @@ func (s *DNSServer) queryIP(query string) chan *Service {
 		s.lock.RLock()
 
 		for _, service := range s.services {
-			if service.IP.String() == ip {
+			if service.IPs[0].String() == ip {
 				c <- service
 			}
 		}
