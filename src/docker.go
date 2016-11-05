@@ -143,6 +143,10 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 			log.Println("Warning, no valid IP address found for container ", desc.Name)
 		} else {
 			service.IP = net.ParseIP(v[0].IPAddress)
+		  ip := net.ParseIP(value.IPAddress)
+		  if ip != nil {
+  		  service.IPs = append(service.IPs,ip)
+		  }
 		}
 	}
 
@@ -238,7 +242,8 @@ func overrideFromLabels(in *Service, labels map[string]string) (out *Service) {
 		if k == "com.dnsdock.ip_addr" {
 			ipAddr := net.ParseIP(v)
 			if ipAddr != nil {
-  			in.IP = ipAddr 
+			  in.IPs = in.IPs[:0]
+  			in.IPs = append(in.IPs, ipAddr) 
 			}
 		}
 	}
@@ -290,7 +295,8 @@ func overrideFromEnv(in *Service, env map[string]string) (out *Service) {
 		if k == "DNSDOCK_IPADDRESS" {
 			ipAddr := net.ParseIP(v)
 			if ipAddr != nil {
-  			in.IP = ipAddr 
+			  in.IPs = in.IPs[:0]
+  			in.IPs = append(in.IPs, ipAddr) 
 			}
 		}
 	}

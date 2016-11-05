@@ -99,7 +99,7 @@ func (s *HTTPServer) addService(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if service.IP == nil {
+	if len(service.IPs) == 0 || service.IPs[0] == nil {
 		http.Error(w, "Property \"ip\" is required", http.StatusInternalServerError)
 		return
 	}
