@@ -6,7 +6,6 @@ import (
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	eventtypes "github.com/docker/engine-api/types/events"
-	"github.com/docker/engine-api/types/network"
 	"github.com/vdemeester/docker-events"
 	"log"
 	"net"
@@ -118,31 +117,11 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 	}
 	service.Name = cleanContainerName(desc.Name)
 
-	prefix := ""
-	if v, ok := desc.Config.Labels["com.dnsdock.prefix"]; ok {
-		prefix = v;
-	}
-	if v, ok := splitEnv(desc.Config.Env)["DNSDOCK_PREFIX"]; ok {
-		prefix = v;
-	}
-
 	switch len(desc.NetworkSettings.Networks) {
 	case 0:
 		log.Println("Warning, no IP address found for container ", desc.Name)
 	default:
-		v := make([]*network.EndpointSettings, 0, len(desc.NetworkSettings.Networks))
 		for _, value := range desc.NetworkSettings.Networks {
-			if prefix == "" || strings.HasPrefix(value.IPAddress, prefix) {
-				v = append(v, value)
-			}
-		}
-		if len(v) > 1 {
-			log.Println("Warning, Multiple IP address found for container ", desc.Name, ". Only the first address will be used")
-			service.IP = net.ParseIP(v[0].IPAddress)
-		} else if len(v) == 0 {
-			log.Println("Warning, no valid IP address found for container ", desc.Name)
-		} else {
-			service.IP = net.ParseIP(v[0].IPAddress)
 		  ip := net.ParseIP(value.IPAddress)
 		  if ip != nil {
   		  service.IPs = append(service.IPs,ip)
@@ -246,6 +225,19 @@ func overrideFromLabels(in *Service, labels map[string]string) (out *Service) {
   			in.IPs = append(in.IPs, ipAddr) 
 			}
 		}
+		
+		if k == "com.dnsdock.prefix" {
+		  addrs := make([]net.IP, 0)
+		  for _, value := range in.IPs {
+		    log.Printf(value.String())
+		    log.Printf(v)
+  			
+  			if strings.HasPrefix(value.String(), v) {
+   				addrs = append(addrs, value)
+   			}
+  		}
+		  in.IPs = addrs
+  	}
 	}
 
 	if len(region) > 0 {
@@ -299,6 +291,16 @@ func overrideFromEnv(in *Service, env map[string]string) (out *Service) {
   			in.IPs = append(in.IPs, ipAddr) 
 			}
 		}
+		
+		if k == "DNSDOCK_PREFIX" {
+		  addrs := make([]net.IP, 0)
+		  for _, value := range in.IPs {
+		    if strings.HasPrefix(value.String(), v) {
+   				addrs = append(addrs, value)
+   			}
+  		}
+		  in.IPs = addrs
+  	}
 	}
 
 	if len(region) > 0 {
