@@ -23,7 +23,7 @@ import (
 
 var logger = logging.MustGetLogger("dnsdock")
 
-
+// InitLoggers initialize loggers
 func InitLoggers(verbosity int) (err error) {
 	var format logging.Formatter
 

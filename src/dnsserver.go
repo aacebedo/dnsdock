@@ -221,7 +221,7 @@ func (s *DNSServer) makeServiceA(n string, service *Service) dns.RR {
   	}
   	rr.A = service.IPs[0]
 	} else {
-	  logger.Errorf("No valid IP address found for container ", service.Name)
+	  logger.Errorf("No valid IP address found for container '%s' ", service.Name)
 	}
 	
 	return rr

@@ -7,13 +7,15 @@ import (
 )
 
 const (
-	VERSION = "0.9.1"
+  // VERSION dnsdock version
+	VERSION = "0.9.1" 
 )
 
+// CommandLine structure handling parameter parsing
 type CommandLine struct{}
 
-func (self *CommandLine) ParseParameters(rawParams []string) (res *Config, err error) {
-
+// ParseParameters Parse parameters
+func (cmdline *CommandLine) ParseParameters(rawParams []string) (res *Config, err error) {
 	res = NewConfig()
 
 	app := kingpin.New("dnsdock", "Automatic DNS for docker containers.")
