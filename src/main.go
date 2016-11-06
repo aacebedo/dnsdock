@@ -3,8 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"flag"
-	"fmt"
 	"io/ioutil"
 	"os"
 )
@@ -12,52 +10,32 @@ import (
 var version string
 
 func main() {
-	help := flag.Bool("help", false, "Show this message")
 
-	config := NewConfig()
-
-	flag.Var(&config.nameserver, "nameserver", "Comma separated list of DNS server(s) for unmatched requests")
-	flag.StringVar(&config.dnsAddr, "dns", config.dnsAddr, "Listen DNS requests on this address")
-	flag.StringVar(&config.httpAddr, "http", config.httpAddr, "Listen HTTP requests on this address")
-	domain := flag.String("domain", config.domain.String(), "Domain that is appended to all requests")
-	environment := flag.String("environment", "", "Optional context before domain suffix")
-	flag.StringVar(&config.dockerHost, "docker", config.dockerHost, "Path to the docker socket")
-	flag.BoolVar(&config.tlsVerify, "tlsverify", false, "Enable mTLS when connecting to docker")
-	flag.StringVar(&config.tlsCaCert, "tlscacert", config.tlsCaCert, "Path to CA certificate")
-	flag.StringVar(&config.tlsCert, "tlscert", config.tlsCert, "Path to client certificate")
-	flag.StringVar(&config.tlsKey, "tlskey", config.tlsKey, "Path to client certificate private key")
-	flag.IntVar(&config.ttl, "ttl", config.ttl, "TTL for matched requests")
-	flag.BoolVar(&config.createAlias, "create-alias", config.createAlias, "Automatically create an alias with just the container name.")
-
-	var showVersion bool
-	if len(version) > 0 {
-		flag.BoolVar(&showVersion, "version", false, "Show application version")
+	var cmdLine CommandLine
+	config, err := cmdLine.ParseParameters(os.Args[1:])
+	if err != nil {
+		logger.Fatalf(err.Error())
 	}
-
-	flag.Parse()
-
-  InitLoggers(true,false)
-
-	if showVersion {
-		fmt.Println("dnsdock", version)
-		return
+	verbosity := 0
+	if config.quiet == false {
+		if config.verbose == false {
+			verbosity = 1
+		} else {
+			verbosity = 2
+		}
 	}
-
-	if *help {
-		fmt.Fprintf(os.Stderr, "Usage: %s [options]\n", os.Args[0])
-		flag.PrintDefaults()
-		return
+	err = InitLoggers(verbosity)
+  if err != nil {
+		logger.Fatalf("Unable to initialize loggers! %s", err.Error())
 	}
-
-	config.domain = NewDomain(*environment + "." + *domain)
-
+  
 	dnsServer := NewDNSServer(config)
 
 	var tlsConfig *tls.Config
 	if config.tlsVerify {
 		clientCert, err := tls.LoadX509KeyPair(config.tlsCert, config.tlsKey)
 		if err != nil {
-		  logger.Fatalf("Error: '%s'", err)
+			logger.Fatalf("Error: '%s'", err)
 		}
 		tlsConfig = &tls.Config{
 			MinVersion:   tls.VersionTLS12,
@@ -69,9 +47,10 @@ func main() {
 			rootCert.AppendCertsFromPEM(pemData)
 			tlsConfig.RootCAs = rootCert
 		} else {
-		  logger.Fatalf("Error: '%s'", err)
+			logger.Fatalf("Error: '%s'", err)
 		}
 	}
+	
 	docker, err := NewDockerManager(config, dnsServer, tlsConfig)
 	if err != nil {
 		logger.Fatalf("Error: '%s'", err)
@@ -79,7 +58,7 @@ func main() {
 	if err := docker.Start(); err != nil {
 		logger.Fatalf("Error: '%s'", err)
 	}
-
+  
 	httpServer := NewHTTPServer(config, dnsServer)
 	go func() {
 		if err := httpServer.Start(); err != nil {

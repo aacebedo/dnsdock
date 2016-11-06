@@ -55,6 +55,8 @@ type Config struct {
 	httpAddr    string
 	ttl         int
 	createAlias bool
+	verbose	    bool
+	quiet				bool
 }
 
 // NewConfig creates a new config
@@ -80,6 +82,8 @@ func NewConfig() *Config {
 		tlsCaCert:   dockerCerts + "/ca.pem",
 		tlsCert:     dockerCerts + "/cert.pem",
 		tlsKey:      dockerCerts + "/key.pem",
+		verbose:		 false,
+  	quiet:			 false,
 	}
 
 }
