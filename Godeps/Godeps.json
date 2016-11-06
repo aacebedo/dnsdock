@@ -17,13 +17,25 @@
 			"Rev": "f3cfb454f4c209e6668c95216c4744b8fddb2356"
 		},
 		{
+			"ImportPath": "github.com/alecthomas/template",
+			"Rev": "a0175ee3bccc567396460bf5acd36800cb10c49c"
+		},
+		{
+			"ImportPath": "github.com/alecthomas/template/parse",
+			"Rev": "a0175ee3bccc567396460bf5acd36800cb10c49c"
+		},
+		{
+			"ImportPath": "github.com/alecthomas/units",
+			"Rev": "2efee857e7cfd4f3d0138cc3cbb1b4966962b93a"
+		},
+		{
 			"ImportPath": "github.com/docker/distribution/digest",
-			"Comment": "v2.5.0-rc.1-22-g4e17ab5",
+			"Comment": "docs-v2.4.1-2016-06-28-6-g4e17ab5",
 			"Rev": "4e17ab5d319ac5b70b2769442947567a83386fbc"
 		},
 		{
 			"ImportPath": "github.com/docker/distribution/reference",
-			"Comment": "v2.5.0-rc.1-22-g4e17ab5",
+			"Comment": "docs-v2.4.1-2016-06-28-6-g4e17ab5",
 			"Rev": "4e17ab5d319ac5b70b2769442947567a83386fbc"
 		},
 		{
@@ -103,22 +115,22 @@
 		},
 		{
 			"ImportPath": "github.com/docker/go-connections/nat",
-			"Comment": "v0.2.0-8-g990a1a1",
+			"Comment": "v0.2.1",
 			"Rev": "990a1a1a70b0da4c4cb70e117971a4f0babfbf1a"
 		},
 		{
 			"ImportPath": "github.com/docker/go-connections/sockets",
-			"Comment": "v0.2.0-8-g990a1a1",
+			"Comment": "v0.2.1",
 			"Rev": "990a1a1a70b0da4c4cb70e117971a4f0babfbf1a"
 		},
 		{
 			"ImportPath": "github.com/docker/go-connections/tlsconfig",
-			"Comment": "v0.2.0-8-g990a1a1",
+			"Comment": "v0.2.1",
 			"Rev": "990a1a1a70b0da4c4cb70e117971a4f0babfbf1a"
 		},
 		{
 			"ImportPath": "github.com/docker/go-units",
-			"Comment": "v0.1.0-23-g5d2041e",
+			"Comment": "v0.3.0",
 			"Rev": "5d2041e26a699eaca682e2ea41c8f891e1060444"
 		},
 		{
@@ -164,6 +176,11 @@
 		{
 			"ImportPath": "golang.org/x/sys/windows",
 			"Rev": "62bee037599929a6e9146f29d10dd5208c43507d"
+		},
+		{
+			"ImportPath": "gopkg.in/alecthomas/kingpin.v2",
+			"Comment": "v2.2.3",
+			"Rev": "e9044be3ab2a8e11d4e1f418d12f0790d57e8d70"
 		}
 	]
 }
