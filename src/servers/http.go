@@ -1,20 +1,21 @@
-package main
+package servers
 
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
+	"github.com/aacebedo/dnsdock/src/utils"
 )
 
 // HTTPServer represents the http endpoint
 type HTTPServer struct {
-	config *Config
+	config *utils.Config
 	list   ServiceListProvider
 	server *http.Server
 }
 
 // NewHTTPServer create a new http endpoint
-func NewHTTPServer(c *Config, list ServiceListProvider) *HTTPServer {
+func NewHTTPServer(c *utils.Config, list ServiceListProvider) *HTTPServer {
 	s := &HTTPServer{
 		config: c,
 		list:   list,
@@ -29,7 +30,7 @@ func NewHTTPServer(c *Config, list ServiceListProvider) *HTTPServer {
 
 	router.HandleFunc("/set/ttl", s.setTTL).Methods("PUT")
 
-	s.server = &http.Server{Addr: c.httpAddr, Handler: router}
+	s.server = &http.Server{Addr: c.HttpAddr, Handler: router}
 
 	return s
 }
@@ -180,6 +181,6 @@ func (s *HTTPServer) setTTL(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	s.config.ttl = value
+	s.config.Ttl = value
 
 }

@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"crypto/tls"
@@ -7,26 +7,27 @@ import (
 	"github.com/docker/engine-api/types"
 	eventtypes "github.com/docker/engine-api/types/events"
 	"github.com/vdemeester/docker-events"
+	"github.com/aacebedo/dnsdock/src/utils"
+	"github.com/aacebedo/dnsdock/src/servers"
 	"net"
 	"regexp"
 	"strconv"
 	"strings"
-
 	"golang.org/x/net/context"
 )
 
 // DockerManager is the entrypoint to the docker daemon
 type DockerManager struct {
-	config *Config
-	list   ServiceListProvider
+	config *utils.Config
+	list   servers.ServiceListProvider
 	client *client.Client
 	cancel context.CancelFunc
 }
 
 // NewDockerManager creates a new DockerManager
-func NewDockerManager(c *Config, list ServiceListProvider, tlsConfig *tls.Config) (*DockerManager, error) {
+func NewDockerManager(c *utils.Config, list servers.ServiceListProvider, tlsConfig *tls.Config) (*DockerManager, error) {
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
-	dclient, err := client.NewClient(c.dockerHost, "v1.22", nil, defaultHeaders)
+	dclient, err := client.NewClient(c.DockerHost, "v1.22", nil, defaultHeaders)
 
 	if err != nil {
 		return nil, err
@@ -100,13 +101,13 @@ func (d *DockerManager) Stop() {
 	d.cancel()
 }
 
-func (d *DockerManager) getService(id string) (*Service, error) {
+func (d *DockerManager) getService(id string) (*servers.Service, error) {
 	desc, err := d.client.ContainerInspect(context.Background(), id)
 	if err != nil {
 		return nil, err
 	}
 
-	service := NewService()
+	service := servers.NewService()
 	service.Aliases = make([]string, 0)
 
 	service.Image = getImageName(desc.Config.Image)
@@ -134,7 +135,7 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 		return nil, errors.New("Skipping " + id)
 	}
 
-	if d.config.createAlias {
+	if d.config.CreateAlias {
 		service.Aliases = append(service.Aliases, service.Name)
 	}
 	return service, nil
@@ -180,7 +181,7 @@ func splitEnv(in []string) (out map[string]string) {
 	return
 }
 
-func overrideFromLabels(in *Service, labels map[string]string) (out *Service) {
+func overrideFromLabels(in *servers.Service, labels map[string]string) (out *servers.Service) {
 	var region string
 	for k, v := range labels {
 		if k == "com.dnsdock.ignore" {
@@ -243,7 +244,7 @@ func overrideFromLabels(in *Service, labels map[string]string) (out *Service) {
 	return
 }
 
-func overrideFromEnv(in *Service, env map[string]string) (out *Service) {
+func overrideFromEnv(in *servers.Service, env map[string]string) (out *servers.Service) {
 	var region string
 	for k, v := range env {
 		if k == "DNSDOCK_IGNORE" || k == "SERVICE_IGNORE" {

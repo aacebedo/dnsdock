@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"os"
@@ -44,19 +44,19 @@ func (n *nameservers) Set(value string) error {
 
 // Config contains DNSDock configuration
 type Config struct {
-	nameserver  nameservers
-	dnsAddr     string
-	domain      Domain
-	dockerHost  string
-	tlsVerify   bool
-	tlsCaCert   string
-	tlsCert     string
-	tlsKey      string	
-	httpAddr    string
-	ttl         int
-	createAlias bool
-	verbose	    bool
-	quiet				bool
+	Nameserver  nameservers
+	DnsAddr     string
+	Domain      Domain
+	DockerHost  string
+	TlsVerify   bool
+	TlsCaCert   string
+	TlsCert     string
+	TlsKey      string	
+	HttpAddr    string
+	Ttl         int
+	CreateAlias bool
+	Verbose	    bool
+	Quiet				bool
 }
 
 // NewConfig creates a new config
@@ -72,18 +72,18 @@ func NewConfig() *Config {
 	}
 
 	return &Config{
-		nameserver: nameservers{"8.8.8.8:53"},
-		dnsAddr:     ":53",
-		domain:      NewDomain("docker"),
-		dockerHost:  dockerHost,
-		httpAddr:    ":80",
-		createAlias: false,
-		tlsVerify:   tlsVerify,
-		tlsCaCert:   dockerCerts + "/ca.pem",
-		tlsCert:     dockerCerts + "/cert.pem",
-		tlsKey:      dockerCerts + "/key.pem",
-		verbose:		 false,
-  	quiet:			 false,
+		Nameserver: nameservers{"8.8.8.8:53"},
+		DnsAddr:     ":53",
+		Domain:      NewDomain("docker"),
+		DockerHost:  dockerHost,
+		HttpAddr:    ":80",
+		CreateAlias: false,
+		TlsVerify:   tlsVerify,
+		TlsCaCert:   dockerCerts + "/ca.pem",
+		TlsCert:     dockerCerts + "/cert.pem",
+		TlsKey:      dockerCerts + "/key.pem",
+		Verbose:		 false,
+  	Quiet:			 false,
 	}
 
 }

@@ -1,8 +1,9 @@
-package main
+package core
 
 import (
 	"reflect"
 	"testing"
+	"github.com/aacebedo/dnsdock/src/servers"
 )
 
 func TestGetImageName(t *testing.T) {
@@ -68,8 +69,8 @@ func TestSplitEnv(t *testing.T) {
 }
 
 func TestOverrideFromEnv(t *testing.T) {
-	getService := func() *Service {
-		service := NewService()
+	getService := func() *servers.Service {
+		service := servers.NewService()
 		service.Name = "myfoo"
 		service.Image = "mybar"
 		return service

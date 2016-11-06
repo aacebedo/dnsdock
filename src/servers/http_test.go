@@ -1,4 +1,4 @@
-package main
+package servers
 
 import (
 	"io/ioutil"
@@ -6,13 +6,14 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"github.com/aacebedo/dnsdock/src/utils"
 )
 
 func TestServiceRequests(t *testing.T) {
 	const TestAddr = "127.0.0.1:9980"
 
-	config := NewConfig()
-	config.httpAddr = TestAddr
+	config := utils.NewConfig()
+	config.HttpAddr = TestAddr
 
 	server := NewHTTPServer(config, NewDNSServer(config))
 	go server.Start()
@@ -68,7 +69,7 @@ func TestServiceRequests(t *testing.T) {
 	}
 
 	t.Log("Test TTL setter")
-	if config.ttl != 0 {
+	if config.Ttl != 0 {
 		t.Error("Default TTL is not 0")
 	}
 	req, err := http.NewRequest("PUT", "http://"+TestAddr+"/set/ttl", strings.NewReader("12"))
@@ -79,7 +80,7 @@ func TestServiceRequests(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if config.ttl != 12 {
-		t.Error("TTL not updated. Expected: 12 Got:", config.ttl)
+	if config.Ttl != 12 {
+		t.Error("TTL not updated. Expected: 12 Got:", config.Ttl)
 	}
 }
