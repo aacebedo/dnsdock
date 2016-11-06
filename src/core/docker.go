@@ -1,4 +1,12 @@
-package main
+/* docker.go
+ *
+ * Copyright (C) 2016 Alexandre ACEBEDO
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
+
+package core
 
 import (
 	"crypto/tls"
@@ -6,29 +14,28 @@ import (
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	eventtypes "github.com/docker/engine-api/types/events"
-	"github.com/docker/engine-api/types/network"
 	"github.com/vdemeester/docker-events"
-	"log"
+	"github.com/aacebedo/dnsdock/src/utils"
+	"github.com/aacebedo/dnsdock/src/servers"
 	"net"
 	"regexp"
 	"strconv"
 	"strings"
-
 	"golang.org/x/net/context"
 )
 
 // DockerManager is the entrypoint to the docker daemon
 type DockerManager struct {
-	config *Config
-	list   ServiceListProvider
+	config *utils.Config
+	list   servers.ServiceListProvider
 	client *client.Client
 	cancel context.CancelFunc
 }
 
 // NewDockerManager creates a new DockerManager
-func NewDockerManager(c *Config, list ServiceListProvider, tlsConfig *tls.Config) (*DockerManager, error) {
+func NewDockerManager(c *utils.Config, list servers.ServiceListProvider, tlsConfig *tls.Config) (*DockerManager, error) {
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
-	dclient, err := client.NewClient(c.dockerHost, "v1.22", nil, defaultHeaders)
+	dclient, err := client.NewClient(c.DockerHost, "v1.22", nil, defaultHeaders)
 
 	if err != nil {
 		return nil, err
@@ -42,17 +49,17 @@ func (d *DockerManager) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	d.cancel = cancel
 	startHandler := func(m eventtypes.Message) {
-		log.Printf("Started container '%s'", m.ID)
+	  logger.Debugf("Started container '%s'", m.ID)
 		service, err := d.getService(m.ID)
 		if err != nil {
-			log.Println(err)
+		  logger.Errorf("%s", err)
 		} else {
 			d.list.AddService(m.ID, *service)
 		}
 	}
 
 	stopHandler := func(m eventtypes.Message) {
-		log.Printf("Stopped container '%s'", m.ID)
+	  logger.Debugf("Stopped container '%s'", m.ID)
 		d.list.RemoveService(m.ID)
 	}
 
@@ -60,11 +67,11 @@ func (d *DockerManager) Start() error {
 		oldName, ok := m.Actor.Attributes["oldName"]
 		name, ok2 := m.Actor.Attributes["oldName"]
 		if ok && ok2 {
-			log.Printf("Renamed container '%s' into '%s'", oldName, name)
+		  logger.Debugf("Renamed container '%s' into '%s'", oldName, name)
 			d.list.RemoveService(oldName)
 			service, err := d.getService(m.ID)
 			if err != nil {
-				log.Println(err)
+			  logger.Errorf("%s", err)
 			} else {
 				d.list.AddService(m.ID, *service)
 			}
@@ -88,7 +95,7 @@ func (d *DockerManager) Start() error {
 	for _, container := range containers {
 		service, err := d.getService(container.ID)
 		if err != nil {
-			log.Println(err)
+			logger.Errorf("%s", err)
 			continue
 		}
 		d.list.AddService(container.ID, *service)
@@ -102,33 +109,32 @@ func (d *DockerManager) Stop() {
 	d.cancel()
 }
 
-func (d *DockerManager) getService(id string) (*Service, error) {
+func (d *DockerManager) getService(id string) (*servers.Service, error) {
 	desc, err := d.client.ContainerInspect(context.Background(), id)
 	if err != nil {
 		return nil, err
 	}
 
-	service := NewService()
+	service := servers.NewService()
 	service.Aliases = make([]string, 0)
 
 	service.Image = getImageName(desc.Config.Image)
 	if imageNameIsSHA(service.Image, desc.Image) {
-		log.Println("Warning: Can't route ", id[:10], ", image", service.Image, "is not a tag.")
+	  logger.Warningf("Warning: Can't route %s, image %s is not a tag.", id[:10], service.Image)
 		service.Image = ""
 	}
 	service.Name = cleanContainerName(desc.Name)
+
 	switch len(desc.NetworkSettings.Networks) {
 	case 0:
-		log.Println("Warning, no IP address found for container ", desc.Name)
+  	logger.Warningf("Warning, no IP address found for container '%s' ", desc.Name)
 	default:
-		v := make([]*network.EndpointSettings, 0, len(desc.NetworkSettings.Networks))
 		for _, value := range desc.NetworkSettings.Networks {
-			v = append(v, value)
+		  ip := net.ParseIP(value.IPAddress)
+		  if ip != nil {
+  		  service.IPs = append(service.IPs,ip)
+		  }
 		}
-		if len(v) > 1 {
-			log.Println("Warning, Multiple IP address found for container ", desc.Name, ". Only the first address will be used")
-		}
-		service.IP = net.ParseIP(v[0].IPAddress)
 	}
 
 	service = overrideFromLabels(service, desc.Config.Labels)
@@ -137,7 +143,7 @@ func (d *DockerManager) getService(id string) (*Service, error) {
 		return nil, errors.New("Skipping " + id)
 	}
 
-	if d.config.createAlias {
+	if d.config.CreateAlias {
 		service.Aliases = append(service.Aliases, service.Name)
 	}
 	return service, nil
@@ -183,7 +189,7 @@ func splitEnv(in []string) (out map[string]string) {
 	return
 }
 
-func overrideFromLabels(in *Service, labels map[string]string) (out *Service) {
+func overrideFromLabels(in *servers.Service, labels map[string]string) (out *servers.Service) {
 	var region string
 	for k, v := range labels {
 		if k == "com.dnsdock.ignore" {
@@ -223,9 +229,20 @@ func overrideFromLabels(in *Service, labels map[string]string) (out *Service) {
 		if k == "com.dnsdock.ip_addr" {
 			ipAddr := net.ParseIP(v)
 			if ipAddr != nil {
-  			in.IP = ipAddr 
+			  in.IPs = in.IPs[:0]
+  			in.IPs = append(in.IPs, ipAddr) 
 			}
 		}
+		
+		if k == "com.dnsdock.prefix" {
+		  addrs := make([]net.IP, 0)
+		  for _, value := range in.IPs {
+		    if strings.HasPrefix(value.String(), v) {
+   				addrs = append(addrs, value)
+   			}
+  		}
+		  in.IPs = addrs
+  	}
 	}
 
 	if len(region) > 0 {
@@ -235,7 +252,7 @@ func overrideFromLabels(in *Service, labels map[string]string) (out *Service) {
 	return
 }
 
-func overrideFromEnv(in *Service, env map[string]string) (out *Service) {
+func overrideFromEnv(in *servers.Service, env map[string]string) (out *servers.Service) {
 	var region string
 	for k, v := range env {
 		if k == "DNSDOCK_IGNORE" || k == "SERVICE_IGNORE" {
@@ -275,9 +292,20 @@ func overrideFromEnv(in *Service, env map[string]string) (out *Service) {
 		if k == "DNSDOCK_IPADDRESS" {
 			ipAddr := net.ParseIP(v)
 			if ipAddr != nil {
-  			in.IP = ipAddr 
+			  in.IPs = in.IPs[:0]
+  			in.IPs = append(in.IPs, ipAddr) 
 			}
 		}
+		
+		if k == "DNSDOCK_PREFIX" {
+		  addrs := make([]net.IP, 0)
+		  for _, value := range in.IPs {
+		    if strings.HasPrefix(value.String(), v) {
+   				addrs = append(addrs, value)
+   			}
+  		}
+		  in.IPs = addrs
+  	}
 	}
 
 	if len(region) > 0 {

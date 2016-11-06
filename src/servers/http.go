@@ -1,21 +1,29 @@
-package main
+/* http.go
+ *
+ * Copyright (C) 2016 Alexandre ACEBEDO
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
+
+package servers
 
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"log"
 	"net/http"
+	"github.com/aacebedo/dnsdock/src/utils"
 )
 
 // HTTPServer represents the http endpoint
 type HTTPServer struct {
-	config *Config
+	config *utils.Config
 	list   ServiceListProvider
 	server *http.Server
 }
 
 // NewHTTPServer create a new http endpoint
-func NewHTTPServer(c *Config, list ServiceListProvider) *HTTPServer {
+func NewHTTPServer(c *utils.Config, list ServiceListProvider) *HTTPServer {
 	s := &HTTPServer{
 		config: c,
 		list:   list,
@@ -30,7 +38,7 @@ func NewHTTPServer(c *Config, list ServiceListProvider) *HTTPServer {
 
 	router.HandleFunc("/set/ttl", s.setTTL).Methods("PUT")
 
-	s.server = &http.Server{Addr: c.httpAddr, Handler: router}
+	s.server = &http.Server{Addr: c.HttpAddr, Handler: router}
 
 	return s
 }
@@ -45,16 +53,15 @@ func (s *HTTPServer) getServices(w http.ResponseWriter, req *http.Request) {
         w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	if err := json.NewEncoder(w).Encode(s.list.GetAllServices()); err != nil {
-		log.Println("Error encoding: ", err)
+	  logger.Errorf("Encoding error: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func (s *HTTPServer) getService(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-
-        w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-
+  w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+  
 	id, ok := vars["id"]
 	if !ok {
 		http.Error(w, "ID required", http.StatusBadRequest)
@@ -68,7 +75,7 @@ func (s *HTTPServer) getService(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(service); err != nil {
-		log.Println("Error: ", err)
+		logger.Errorf("Encoding error: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -84,7 +91,7 @@ func (s *HTTPServer) addService(w http.ResponseWriter, req *http.Request) {
 
 	service := NewService()
 	if err := json.NewDecoder(req.Body).Decode(&service); err != nil {
-		log.Println("Error decoding JSON: ", err)
+		logger.Errorf("JSON decoding error: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -99,7 +106,7 @@ func (s *HTTPServer) addService(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if service.IP == nil {
+	if len(service.IPs) == 0 || service.IPs[0] == nil {
 		http.Error(w, "Property \"ip\" is required", http.StatusInternalServerError)
 		return
 	}
@@ -139,7 +146,7 @@ func (s *HTTPServer) updateService(w http.ResponseWriter, req *http.Request) {
 
 	var input map[string]interface{}
 	if err := json.NewDecoder(req.Body).Decode(&input); err != nil {
-		log.Println("Error decoding JSON: ", err)
+	  logger.Errorf("JSON decoding error: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -177,11 +184,11 @@ func (s *HTTPServer) updateService(w http.ResponseWriter, req *http.Request) {
 func (s *HTTPServer) setTTL(w http.ResponseWriter, req *http.Request) {
 	var value int
 	if err := json.NewDecoder(req.Body).Decode(&value); err != nil {
-		log.Println("Error decoding value: ", err)
+		logger.Errorf("Decoding error: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	s.config.ttl = value
+	s.config.Ttl = value
 
 }
