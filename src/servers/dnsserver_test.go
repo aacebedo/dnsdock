@@ -1,19 +1,19 @@
-package main
+package servers
 
 import (
 	"net"
 	"strings"
 	"testing"
 	"time"
-
+  "github.com/aacebedo/dnsdock/src/utils"
 	"github.com/miekg/dns"
 )
 
 func TestDNSResponse(t *testing.T) {
 	const TestAddr = "127.0.0.1:9953"
 
-	config := NewConfig()
-	config.dnsAddr = TestAddr
+	config := utils.NewConfig()
+	config.DnsAddr = TestAddr
 
 	server := NewDNSServer(config)
 	go server.Start()
@@ -100,7 +100,7 @@ func TestDNSResponse(t *testing.T) {
 }
 
 func TestServiceManagement(t *testing.T) {
-	list := ServiceListProvider(NewDNSServer(NewConfig()))
+	list := ServiceListProvider(NewDNSServer(utils.NewConfig()))
 
 	if len(list.GetAllServices()) != 0 {
 		t.Error("Initial service count should be 0.")
@@ -178,7 +178,7 @@ func TestServiceManagement(t *testing.T) {
 }
 
 func TestDNSRequestMatch(t *testing.T) {
-	server := NewDNSServer(NewConfig())
+	server := NewDNSServer(utils.NewConfig())
 
 	server.AddService("foo", Service{Name: "foo", Image: "bar", IPs: []net.IP {net.ParseIP("127.0.0.1")}})
 	server.AddService("baz", Service{Name: "baz", Image: "bar", IPs: []net.IP {net.ParseIP("127.0.0.1")}})
@@ -209,7 +209,7 @@ func TestDNSRequestMatch(t *testing.T) {
 	}
 
 	for _, input := range inputs {
-		server.config.domain = NewDomain(input.domain)
+		server.config.Domain = utils.NewDomain(input.domain)
 
 		t.Log(input.query, input.domain)
 
@@ -225,7 +225,7 @@ func TestDNSRequestMatch(t *testing.T) {
 }
 
 func TestDNSRequestMatchNamesWithDots(t *testing.T) {
-	server := NewDNSServer(NewConfig())
+	server := NewDNSServer(utils.NewConfig())
 
 	server.AddService("boo", Service{Name: "foo.boo", Image: "bar.zar", IPs: []net.IP {net.ParseIP("127.0.0.1")}})
 	server.AddService("baz", Service{Name: "baz", Image: "bar.zar", IPs: []net.IP {net.ParseIP("127.0.0.1")}})
@@ -253,7 +253,7 @@ func TestDNSRequestMatchNamesWithDots(t *testing.T) {
 	}
 
 	for _, input := range inputs {
-		server.config.domain = NewDomain(input.domain)
+		server.config.Domain = utils.NewDomain(input.domain)
 
 		t.Log(input.query, input.domain)
 		actual := 0
@@ -268,7 +268,7 @@ func TestDNSRequestMatchNamesWithDots(t *testing.T) {
 }
 
 func TestgetExpandedID(t *testing.T) {
-	server := NewDNSServer(NewConfig())
+	server := NewDNSServer(utils.NewConfig())
 
 	server.AddService("416261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f142bc0df", Service{})
 	server.AddService("316261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f14nothex", Service{})
