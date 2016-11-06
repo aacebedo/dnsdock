@@ -241,6 +241,9 @@ func overrideFromLabels(in *servers.Service, labels map[string]string) (out *ser
    				addrs = append(addrs, value)
    			}
   		}
+		  if len(addrs) == 0 {
+		    logger.Warningf("The prefix '%s' didn't match any IP addresses of service '%s', the service will be ignored", v, in.Name)
+		  }
 		  in.IPs = addrs
   	}
 	}
@@ -304,6 +307,9 @@ func overrideFromEnv(in *servers.Service, env map[string]string) (out *servers.S
    				addrs = append(addrs, value)
    			}
   		}
+		  if len(addrs) == 0 {
+		    logger.Warningf("The prefix '%s' didn't match any IP address of  service '%s', the service will be ignored", v, in.Name)
+		  }
 		  in.IPs = addrs
   	}
 	}
