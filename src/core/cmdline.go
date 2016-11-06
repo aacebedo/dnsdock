@@ -18,7 +18,7 @@ import (
 
 const (
   // VERSION dnsdock version
-	VERSION = "0.9.1" 
+	VERSION = "1.16.0" 
 )
 
 // CommandLine structure handling parameter parsing
