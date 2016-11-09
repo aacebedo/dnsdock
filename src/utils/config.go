@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-// Domain represents a domain 
+// Domain represents a domain
 type Domain []string
 
 // NewDomain creates a new domain
@@ -59,12 +59,12 @@ type Config struct {
 	TlsVerify   bool
 	TlsCaCert   string
 	TlsCert     string
-	TlsKey      string	
+	TlsKey      string
 	HttpAddr    string
 	Ttl         int
 	CreateAlias bool
-	Verbose	    bool
-	Quiet				bool
+	Verbose     bool
+	Quiet       bool
 }
 
 // NewConfig creates a new config
@@ -80,7 +80,7 @@ func NewConfig() *Config {
 	}
 
 	return &Config{
-		Nameserver: nameservers{"8.8.8.8:53"},
+		Nameserver:  nameservers{"8.8.8.8:53"},
 		DnsAddr:     ":53",
 		Domain:      NewDomain("docker"),
 		DockerHost:  dockerHost,
@@ -90,8 +90,8 @@ func NewConfig() *Config {
 		TlsCaCert:   dockerCerts + "/ca.pem",
 		TlsCert:     dockerCerts + "/cert.pem",
 		TlsKey:      dockerCerts + "/key.pem",
-		Verbose:		 false,
-  	Quiet:			 false,
+		Verbose:     false,
+		Quiet:       false,
 	}
 
 }

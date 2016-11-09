@@ -13,8 +13,10 @@ import (
 	"strings"
 	"testing"
 	"time"
-  "github.com/aacebedo/dnsdock/src/utils"
+
 	"github.com/miekg/dns"
+
+	"github.com/aacebedo/dnsdock/src/utils"
 )
 
 func TestDNSResponse(t *testing.T) {
@@ -29,10 +31,10 @@ func TestDNSResponse(t *testing.T) {
 	// Allow some time for server to start
 	time.Sleep(250 * time.Millisecond)
 
-	server.AddService("foo", Service{Name: "foo", Image: "bar", IPs: []net.IP {net.ParseIP("127.0.0.1")}})
-	server.AddService("baz", Service{Name: "baz", Image: "bar", IPs: []net.IP {net.ParseIP("127.0.0.1")}, TTL: -1})
-	server.AddService("biz", Service{Name: "hey", Image: "", IPs: []net.IP {net.ParseIP("127.0.0.4")}})
-	server.AddService("joe", Service{Name: "joe", Image: "", IPs: []net.IP {net.ParseIP("127.0.0.5")}, Aliases: []string{"lala.docker", "super-alias", "alias.domain"}})
+	server.AddService("foo", Service{Name: "foo", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+	server.AddService("baz", Service{Name: "baz", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}, TTL: -1})
+	server.AddService("biz", Service{Name: "hey", Image: "", IPs: []net.IP{net.ParseIP("127.0.0.4")}})
+	server.AddService("joe", Service{Name: "joe", Image: "", IPs: []net.IP{net.ParseIP("127.0.0.5")}, Aliases: []string{"lala.docker", "super-alias", "alias.domain"}})
 
 	var inputs = []struct {
 		query    string
@@ -114,7 +116,7 @@ func TestServiceManagement(t *testing.T) {
 		t.Error("Initial service count should be 0.")
 	}
 
-	A := Service{Name: "bar", IPs: []net.IP {net.ParseIP("127.0.0.1")}}
+	A := Service{Name: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}}
 	list.AddService("foo", A)
 
 	if len(list.GetAllServices()) != 1 {
@@ -138,7 +140,7 @@ func TestServiceManagement(t *testing.T) {
 		t.Error("Request to boo should have failed")
 	}
 
-	list.AddService("boo", Service{Name: "boo", IPs: []net.IP {net.ParseIP("127.0.0.1")}})
+	list.AddService("boo", Service{Name: "boo", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
 
 	all := list.GetAllServices()
 
@@ -168,7 +170,7 @@ func TestServiceManagement(t *testing.T) {
 		t.Error("Item count after remove should be 1")
 	}
 
-	list.AddService("416261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f142bc0df", Service{Name: "mysql", IPs: []net.IP {net.ParseIP("127.0.0.1")}})
+	list.AddService("416261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f142bc0df", Service{Name: "mysql", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
 
 	if s1, _ = list.GetService("416261"); s1.Name != "mysql" {
 		t.Error("Container can't be found by prefix")
@@ -188,10 +190,10 @@ func TestServiceManagement(t *testing.T) {
 func TestDNSRequestMatch(t *testing.T) {
 	server := NewDNSServer(utils.NewConfig())
 
-	server.AddService("foo", Service{Name: "foo", Image: "bar", IPs: []net.IP {net.ParseIP("127.0.0.1")}})
-	server.AddService("baz", Service{Name: "baz", Image: "bar", IPs: []net.IP {net.ParseIP("127.0.0.1")}})
-	server.AddService("abc", Service{Name: "def", Image: "ghi", IPs: []net.IP {net.ParseIP("127.0.0.1")}})
-	server.AddService("qux", Service{Name: "qux", Image: "", IPs: []net.IP {net.ParseIP("127.0.0.1")}})
+	server.AddService("foo", Service{Name: "foo", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+	server.AddService("baz", Service{Name: "baz", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+	server.AddService("abc", Service{Name: "def", Image: "ghi", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+	server.AddService("qux", Service{Name: "qux", Image: "", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
 
 	inputs := []struct {
 		query, domain string
@@ -235,10 +237,10 @@ func TestDNSRequestMatch(t *testing.T) {
 func TestDNSRequestMatchNamesWithDots(t *testing.T) {
 	server := NewDNSServer(utils.NewConfig())
 
-	server.AddService("boo", Service{Name: "foo.boo", Image: "bar.zar", IPs: []net.IP {net.ParseIP("127.0.0.1")}})
-	server.AddService("baz", Service{Name: "baz", Image: "bar.zar", IPs: []net.IP {net.ParseIP("127.0.0.1")}})
-	server.AddService("abc", Service{Name: "bar", Image: "zar", IPs: []net.IP {net.ParseIP("127.0.0.1")}})
-	server.AddService("qux", Service{Name: "qux.quu", Image: "", IPs: []net.IP {net.ParseIP("127.0.0.1")}})
+	server.AddService("boo", Service{Name: "foo.boo", Image: "bar.zar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+	server.AddService("baz", Service{Name: "baz", Image: "bar.zar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+	server.AddService("abc", Service{Name: "bar", Image: "zar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+	server.AddService("qux", Service{Name: "qux.quu", Image: "", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
 
 	inputs := []struct {
 		query, domain string

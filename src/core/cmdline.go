@@ -10,15 +10,16 @@ package core
 
 import (
 	"fmt"
-	"gopkg.in/alecthomas/kingpin.v2"
-	"github.com/aacebedo/dnsdock/src/utils"
 	"strconv"
+
+	"gopkg.in/alecthomas/kingpin.v2"
+
+	"github.com/aacebedo/dnsdock/src/utils"
 )
 
-
 const (
-  // VERSION dnsdock version
-	VERSION = "1.16.0" 
+	// VERSION dnsdock version
+	VERSION = "1.16.0"
 )
 
 // CommandLine structure handling parameter parsing
