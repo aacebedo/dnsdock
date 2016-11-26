@@ -175,22 +175,22 @@ func (s *DNSServer) listDomains(service *Service) chan string {
 func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 	
 	logger.Debugf("Using DNS forwarding for '%s'",r.Question[0].Name)
-	logger.Debugf("Forwarding DNS nameservers: %s",s.config.Nameserver.String())
+	logger.Debugf("Forwarding DNS nameservers: %s",s.config.Nameservers.String())
 	
 	// Otherwise just forward the request to another server
 	c := new(dns.Client)
 
 	// look at each Nameserver, stop on success
-	for i := range s.config.Nameserver {
-	  logger.Debugf("Using Nameserver %s", s.config.Nameserver[i])
+	for i := range s.config.Nameservers {
+	  logger.Debugf("Using Nameserver %s", s.config.Nameservers[i])
 
-		in, _, err := c.Exchange(r, s.config.Nameserver[i])
+		in, _, err := c.Exchange(r, s.config.Nameservers[i])
 		if err == nil {
 			w.WriteMsg(in)
 			return
 		}
 
-		if i == (len(s.config.Nameserver) - 1) {
+		if i == (len(s.config.Nameservers) - 1) {
 		  logger.Fatalf("DNS fowarding for '%s' failed: no more nameservers to try", err.Error())
 
 			// Send failure reply

@@ -31,7 +31,8 @@ func (cmdline *CommandLine) ParseParameters(rawParams []string) (res *utils.Conf
 	app := kingpin.New("dnsdock", "Automatic DNS for docker containers.")
 	app.Version(VERSION)
 	app.HelpFlag.Short('h')
-	nameservers := app.Flag("nameserver", "Comma separated list of DNS server(s) for unmatched requests").Strings()
+	
+	nameservers := app.Flag("nameserver", "Comma separated list of DNS server(s) for unmatched requests").Default("8.8.8.8:53").Strings()
 	dns := app.Flag("dns", "Listen DNS requests on this address").Default(res.DnsAddr).Short('d').String()
 	http := app.Flag("http", "Listen HTTP requests on this address").Default(res.HttpAddr).Short('t').String()
 	domain := app.Flag("domain", "Domain that is appended to all requests").Default(res.Domain.String()).String()
@@ -50,7 +51,7 @@ func (cmdline *CommandLine) ParseParameters(rawParams []string) (res *utils.Conf
 
 	res.Verbose = *verbose
 	res.Quiet = *quiet
-	res.Nameserver = *nameservers
+	res.Nameservers = *nameservers
 	res.DnsAddr = *dns
 	res.HttpAddr = *http
 	res.Domain = utils.NewDomain(fmt.Sprintf("%s.%s", *environment, *domain))
