@@ -11,6 +11,7 @@ package core
 import (
 	"reflect"
 	"testing"
+
 	"github.com/aacebedo/dnsdock/src/servers"
 )
 
