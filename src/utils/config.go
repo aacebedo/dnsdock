@@ -52,7 +52,7 @@ func (n *nameservers) Set(value string) error {
 
 // Config contains DNSDock configuration
 type Config struct {
-	Nameserver  nameservers
+	Nameservers  nameservers
 	DnsAddr     string
 	Domain      Domain
 	DockerHost  string
@@ -80,7 +80,7 @@ func NewConfig() *Config {
 	}
 
 	return &Config{
-		Nameserver: nameservers{"8.8.8.8:53"},
+		Nameservers: nameservers{"8.8.8.8:53"},
 		DnsAddr:     ":53",
 		Domain:      NewDomain("docker"),
 		DockerHost:  dockerHost,
