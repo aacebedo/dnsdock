@@ -78,9 +78,7 @@ FROM easypi/alpine-arm
 IMPORT ./dnsdock /bin/dnsdock
 ENTRYPOINT ["dnsdock"]
 TAG aacebedo/dnsdock:{{$DOCKERIMAGE_VERSION}}-{{$ARCH}}
-PUSH aacebedo/dnsdock:{{$DOCKERIMAGE_VERSION}}-{{$ARCH}}
 
 {{if ne $DOCKERIMAGE_VERSION "dev"}}
 TAG aacebedo/dnsdock:latest-{{$ARCH}}
-PUSH aacebedo/dnsdock:latest-{{$ARCH}}
 {{end}}
