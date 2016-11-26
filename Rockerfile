@@ -65,7 +65,7 @@ RUN go build -o /tmp/output/dnsdock -ldflags "-X main.version=$(if version=$(git
 RUN golint -set_exit_status
 {{if eq $ARCH "amd64"}}
 RUN go vet
-RUN go test
+RUN go test ./...
 {{end}}
 EXPORT /tmp/output/dnsdock ./dnsdock
 
