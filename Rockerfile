@@ -39,6 +39,7 @@ ENV PATH ${PATH}:/go/bin
 ENV CGO_ENABLED 0
 
 RUN go get -v github.com/tools/godep
+RUN go get -u github.com/golang/lint/golint
 
 RUN mkdir -p /go/src/github.com/aacebedo/dnsdock
 WORKDIR /go/src/github.com/aacebedo/dnsdock
@@ -57,8 +58,6 @@ WORKDIR /go/src/github.com/aacebedo/dnsdock
 
 WORKDIR /go/src/github.com/aacebedo/dnsdock
 RUN godep restore
-RUN go get -u github.com/golang/lint/golint
-
 ENV GOARCH={{$ARCH}}
 WORKDIR /go/src/github.com/aacebedo/dnsdock/src
 ATTACH sh
