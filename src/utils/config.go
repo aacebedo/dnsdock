@@ -62,6 +62,7 @@ type Config struct {
 	TlsKey      string	
 	HttpAddr    string
 	Ttl         int
+	ForceTtl    bool
 	CreateAlias bool
 	Verbose	    bool
 	Quiet				bool
@@ -94,6 +95,8 @@ func NewConfig() *Config {
 		Verbose:		 false,
   	Quiet:			 false,
 		All:         false,
+		ForceTtl:    false,
+		Ttl:         0,
 	}
 
 }

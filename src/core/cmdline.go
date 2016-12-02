@@ -43,6 +43,7 @@ func (cmdline *CommandLine) ParseParameters(rawParams []string) (res *utils.Conf
 	tlscert := app.Flag("tlscert", "Path to Client certificate").Default(res.TlsCert).String()
 	tlskey := app.Flag("tlskey", "Path to client certificate private key").Default(res.TlsKey).String()
 	ttl := app.Flag("ttl", "TTL for matched requests").Default(strconv.FormatInt(int64(res.Ttl), 10)).Int()
+	forceTtl := app.Flag("forcettl", "Force TTL value even for forwared requests.").Bool()
 	createAlias := app.Flag("alias", "Automatically create an alias with just the container name.").Default(strconv.FormatBool(res.CreateAlias)).Bool()
 	verbose := app.Flag("verbose", "Verbose mode.").Default(strconv.FormatBool(res.Verbose)).Short('v').Bool()
 	quiet := app.Flag("quiet", "Quiet mode.").Default(strconv.FormatBool(res.Quiet)).Short('q').Bool()
@@ -64,5 +65,6 @@ func (cmdline *CommandLine) ParseParameters(rawParams []string) (res *utils.Conf
 	res.Ttl = *ttl
 	res.CreateAlias = *createAlias
 	res.All = *all
+	res.ForceTtl = *forceTtl
 	return
 }

@@ -33,6 +33,13 @@ func NewService() (s *Service) {
 	s = &Service{TTL: -1}
 	return
 }
+func (s Service) String() string {
+	return fmt.Sprintf(` Name:    %s
+                       Aliases: %s
+                       IPs:     %s
+                       TTL:     %d
+        `, s.Name, s.Aliases, s.IPs, s.TTL)
+}
 
 // ServiceListProvider represents the entrypoint to get containers
 type ServiceListProvider interface {
@@ -186,6 +193,12 @@ func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 
 		in, _, err := c.Exchange(r, s.config.Nameservers[i])
 		if err == nil {
+			if s.config.ForceTtl {
+				logger.Debugf("Forcing Ttl value of the forwarded response")
+				for _, rr := range in.Answer {
+					rr.Header().Ttl = uint32(s.config.Ttl)
+				}
+			}
 			w.WriteMsg(in)
 			return
 		}
