@@ -65,6 +65,7 @@ type Config struct {
 	CreateAlias bool
 	Verbose	    bool
 	Quiet				bool
+	All         bool
 }
 
 // NewConfig creates a new config
@@ -92,6 +93,7 @@ func NewConfig() *Config {
 		TlsKey:      dockerCerts + "/key.pem",
 		Verbose:		 false,
   	Quiet:			 false,
+		All:         false,
 	}
 
 }
