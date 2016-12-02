@@ -138,15 +138,17 @@ Additional configuration options to dnsdock command:
 --docker="unix://var/run/docker.sock": Path to the docker socket
 --domain="docker": Domain that is appended to all requests
 --environment="": Optional context before domain suffix
---help=false: Show this message
+--help: Show this message
 --http=":80": Listen HTTP requests on this address
 --nameserver="8.8.8.8:53": DNS server for unmatched requests
 --ttl=0: TTL for matched requests
---verbose=true: Verbose output
---tlsverify=false: enable mutual TLS between dnsdock and Docker
+--verbose: Verbose output
+--tlsverify: enable mutual TLS between dnsdock and Docker
 --tlscacert="$HOME/.docker/ca.pem": Path to CA certificate
 --tlscert="$HOME/.docker/cert.pem": Path to client certificate
 --tlskey="$HOME/.docker/key.pem": Path to client certificate private key
+--all: Process all container even if they are stopped
+--forcettl: Change TTL value of responses coming from remote servers 
 ```
 
 If you also want to let the host machine discover the containers add `nameserver 172.17.0.1` to your `/etc/resolv.conf`.
