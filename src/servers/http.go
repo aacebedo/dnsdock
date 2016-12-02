@@ -10,9 +10,9 @@ package servers
 
 import (
 	"encoding/json"
+	"github.com/aacebedo/dnsdock/src/utils"
 	"github.com/gorilla/mux"
 	"net/http"
-	"github.com/aacebedo/dnsdock/src/utils"
 )
 
 // HTTPServer represents the http endpoint
@@ -50,18 +50,18 @@ func (s *HTTPServer) Start() error {
 
 func (s *HTTPServer) getServices(w http.ResponseWriter, req *http.Request) {
 
-        w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	if err := json.NewEncoder(w).Encode(s.list.GetAllServices()); err != nil {
-	  logger.Errorf("Encoding error: %s", err)
+		logger.Errorf("Encoding error: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func (s *HTTPServer) getService(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-  w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-  
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
 	id, ok := vars["id"]
 	if !ok {
 		http.Error(w, "ID required", http.StatusBadRequest)
@@ -146,7 +146,7 @@ func (s *HTTPServer) updateService(w http.ResponseWriter, req *http.Request) {
 
 	var input map[string]interface{}
 	if err := json.NewDecoder(req.Body).Decode(&input); err != nil {
-	  logger.Errorf("JSON decoding error: %s", err)
+		logger.Errorf("JSON decoding error: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

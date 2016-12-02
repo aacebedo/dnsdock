@@ -10,15 +10,14 @@ package core
 
 import (
 	"fmt"
-	"gopkg.in/alecthomas/kingpin.v2"
 	"github.com/aacebedo/dnsdock/src/utils"
+	"gopkg.in/alecthomas/kingpin.v2"
 	"strconv"
 )
 
-
 const (
-  // VERSION dnsdock version
-	VERSION = "1.16.1" 
+	// VERSION dnsdock version
+	VERSION = "1.16.1"
 )
 
 // CommandLine structure handling parameter parsing
@@ -31,7 +30,7 @@ func (cmdline *CommandLine) ParseParameters(rawParams []string) (res *utils.Conf
 	app := kingpin.New("dnsdock", "Automatic DNS for docker containers.")
 	app.Version(VERSION)
 	app.HelpFlag.Short('h')
-	
+
 	nameservers := app.Flag("nameserver", "Comma separated list of DNS server(s) for unmatched requests").Default("8.8.8.8:53").Strings()
 	dns := app.Flag("dns", "Listen DNS requests on this address").Default(res.DnsAddr).Short('d').String()
 	http := app.Flag("http", "Listen HTTP requests on this address").Default(res.HttpAddr).Short('t').String()

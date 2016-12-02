@@ -11,17 +11,17 @@ package core
 import (
 	"crypto/tls"
 	"errors"
+	"github.com/aacebedo/dnsdock/src/servers"
+	"github.com/aacebedo/dnsdock/src/utils"
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	eventtypes "github.com/docker/engine-api/types/events"
 	"github.com/vdemeester/docker-events"
-	"github.com/aacebedo/dnsdock/src/utils"
-	"github.com/aacebedo/dnsdock/src/servers"
+	"golang.org/x/net/context"
 	"net"
 	"regexp"
 	"strconv"
 	"strings"
-	"golang.org/x/net/context"
 )
 
 // DockerManager is the entrypoint to the docker daemon
@@ -49,10 +49,10 @@ func (d *DockerManager) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	d.cancel = cancel
 	startHandler := func(m eventtypes.Message) {
-	  logger.Debugf("Started container '%s'", m.ID)
+		logger.Debugf("Started container '%s'", m.ID)
 		service, err := d.getService(m.ID)
 		if err != nil {
-		  logger.Errorf("%s", err)
+			logger.Errorf("%s", err)
 		} else {
 			d.list.AddService(m.ID, *service)
 		}
@@ -71,11 +71,11 @@ func (d *DockerManager) Start() error {
 		oldName, ok := m.Actor.Attributes["oldName"]
 		name, ok2 := m.Actor.Attributes["oldName"]
 		if ok && ok2 {
-		  logger.Debugf("Renamed container '%s' into '%s'", oldName, name)
+			logger.Debugf("Renamed container '%s' into '%s'", oldName, name)
 			d.list.RemoveService(oldName)
 			service, err := d.getService(m.ID)
 			if err != nil {
-			  logger.Errorf("%s", err)
+				logger.Errorf("%s", err)
 			} else {
 				d.list.AddService(m.ID, *service)
 			}
@@ -132,20 +132,20 @@ func (d *DockerManager) getService(id string) (*servers.Service, error) {
 
 	service.Image = getImageName(desc.Config.Image)
 	if imageNameIsSHA(service.Image, desc.Image) {
-	  logger.Warningf("Warning: Can't route %s, image %s is not a tag.", id[:10], service.Image)
+		logger.Warningf("Warning: Can't route %s, image %s is not a tag.", id[:10], service.Image)
 		service.Image = ""
 	}
 	service.Name = cleanContainerName(desc.Name)
 
 	switch len(desc.NetworkSettings.Networks) {
 	case 0:
-  	logger.Warningf("Warning, no IP address found for container '%s' ", desc.Name)
+		logger.Warningf("Warning, no IP address found for container '%s' ", desc.Name)
 	default:
 		for _, value := range desc.NetworkSettings.Networks {
-		  ip := net.ParseIP(value.IPAddress)
-		  if ip != nil {
-  		  service.IPs = append(service.IPs,ip)
-		  }
+			ip := net.ParseIP(value.IPAddress)
+			if ip != nil {
+				service.IPs = append(service.IPs, ip)
+			}
 		}
 	}
 
@@ -237,24 +237,24 @@ func overrideFromLabels(in *servers.Service, labels map[string]string) (out *ser
 		if k == "com.dnsdock.region" {
 			region = v
 		}
-		
+
 		if k == "com.dnsdock.ip_addr" {
 			ipAddr := net.ParseIP(v)
 			if ipAddr != nil {
-			  in.IPs = in.IPs[:0]
-  			in.IPs = append(in.IPs, ipAddr) 
+				in.IPs = in.IPs[:0]
+				in.IPs = append(in.IPs, ipAddr)
 			}
 		}
-		
+
 		if k == "com.dnsdock.prefix" {
-		  addrs := make([]net.IP, 0)
-		  for _, value := range in.IPs {
-		    if strings.HasPrefix(value.String(), v) {
-   				addrs = append(addrs, value)
-   			}
-  		}
-		  in.IPs = addrs
-  	}
+			addrs := make([]net.IP, 0)
+			for _, value := range in.IPs {
+				if strings.HasPrefix(value.String(), v) {
+					addrs = append(addrs, value)
+				}
+			}
+			in.IPs = addrs
+		}
 	}
 
 	if len(region) > 0 {
@@ -300,24 +300,24 @@ func overrideFromEnv(in *servers.Service, env map[string]string) (out *servers.S
 		if k == "SERVICE_REGION" {
 			region = v
 		}
-		
+
 		if k == "DNSDOCK_IPADDRESS" {
 			ipAddr := net.ParseIP(v)
 			if ipAddr != nil {
-			  in.IPs = in.IPs[:0]
-  			in.IPs = append(in.IPs, ipAddr) 
+				in.IPs = in.IPs[:0]
+				in.IPs = append(in.IPs, ipAddr)
 			}
 		}
-		
+
 		if k == "DNSDOCK_PREFIX" {
-		  addrs := make([]net.IP, 0)
-		  for _, value := range in.IPs {
-		    if strings.HasPrefix(value.String(), v) {
-   				addrs = append(addrs, value)
-   			}
-  		}
-		  in.IPs = addrs
-  	}
+			addrs := make([]net.IP, 0)
+			for _, value := range in.IPs {
+				if strings.HasPrefix(value.String(), v) {
+					addrs = append(addrs, value)
+				}
+			}
+			in.IPs = addrs
+		}
 	}
 
 	if len(region) > 0 {

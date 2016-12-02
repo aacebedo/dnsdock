@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-// Domain represents a domain 
+// Domain represents a domain
 type Domain []string
 
 // NewDomain creates a new domain
@@ -52,20 +52,20 @@ func (n *nameservers) Set(value string) error {
 
 // Config contains DNSDock configuration
 type Config struct {
-	Nameservers  nameservers
+	Nameservers nameservers
 	DnsAddr     string
 	Domain      Domain
 	DockerHost  string
 	TlsVerify   bool
 	TlsCaCert   string
 	TlsCert     string
-	TlsKey      string	
+	TlsKey      string
 	HttpAddr    string
 	Ttl         int
 	ForceTtl    bool
 	CreateAlias bool
-	Verbose	    bool
-	Quiet				bool
+	Verbose     bool
+	Quiet       bool
 	All         bool
 }
 
@@ -92,8 +92,8 @@ func NewConfig() *Config {
 		TlsCaCert:   dockerCerts + "/ca.pem",
 		TlsCert:     dockerCerts + "/cert.pem",
 		TlsKey:      dockerCerts + "/key.pem",
-		Verbose:		 false,
-  	Quiet:			 false,
+		Verbose:     false,
+		Quiet:       false,
 		All:         false,
 		ForceTtl:    false,
 		Ttl:         0,

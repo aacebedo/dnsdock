@@ -11,12 +11,12 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"github.com/aacebedo/dnsdock/src/core"
+	"github.com/aacebedo/dnsdock/src/servers"
+	"github.com/aacebedo/dnsdock/src/utils"
+	"github.com/op/go-logging"
 	"io/ioutil"
 	"os"
-	"github.com/aacebedo/dnsdock/src/core"
-	"github.com/aacebedo/dnsdock/src/utils"
-	"github.com/aacebedo/dnsdock/src/servers"
-  "github.com/op/go-logging"
 )
 
 var logger = logging.MustGetLogger("dnsdock.main")
@@ -37,10 +37,10 @@ func main() {
 		}
 	}
 	err = utils.InitLoggers(verbosity)
-  if err != nil {
+	if err != nil {
 		logger.Fatalf("Unable to initialize loggers! %s", err.Error())
 	}
-  
+
 	dnsServer := servers.NewDNSServer(config)
 
 	var tlsConfig *tls.Config
@@ -62,7 +62,7 @@ func main() {
 			logger.Fatalf("Error: '%s'", err)
 		}
 	}
-	
+
 	docker, err := core.NewDockerManager(config, dnsServer, tlsConfig)
 	if err != nil {
 		logger.Fatalf("Error: '%s'", err)
@@ -70,7 +70,7 @@ func main() {
 	if err := docker.Start(); err != nil {
 		logger.Fatalf("Error: '%s'", err)
 	}
-  
+
 	httpServer := servers.NewHTTPServer(config, dnsServer)
 	go func() {
 		if err := httpServer.Start(); err != nil {
