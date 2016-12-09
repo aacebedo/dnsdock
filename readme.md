@@ -264,7 +264,7 @@ If you want dnsdock to skip processing a specific container set its
 `com.dnsdock.ignore` label.
 
 You can force the value of the IP address returned in the DNS record with the 
-`com.dnsdock.ip_address` label. This can be useful if you have a reverse proxy such as traefik in a container with mapped port and you want to redirect your clients to the front server instead of an internal docker container ip address.
+`com.dnsdock.ip_addr` label. This can be useful if you have a reverse proxy such as traefik in a container with mapped port and you want to redirect your clients to the front server instead of an internal docker container ip address.
 
 #### OSX Usage
 
