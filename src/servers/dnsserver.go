@@ -299,7 +299,7 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		query = query[:len(query)-1]
 	}
 
-	logger.Debugf("DNS request for query '%s' from remote '%s'", w.RemoteAddr().String(), w.RemoteAddr())
+	logger.Debugf("DNS request for query '%s' from remote '%s'", query, w.RemoteAddr())
 
 	for service := range s.queryServices(query) {
 		var rr dns.RR
