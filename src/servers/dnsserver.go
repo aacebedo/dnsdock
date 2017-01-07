@@ -517,7 +517,7 @@ func isPrefixQuery(query, name []string) bool {
 			return false
 		}
 	}
-	return true
+	return len(name) >= len(query)
 }
 
 func reverse(input []string) []string {
