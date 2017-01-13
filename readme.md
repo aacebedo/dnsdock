@@ -4,7 +4,7 @@
 ## dnsdock
 
 DNS server for automatic docker container discovery. Simplified version of
-[crosbymichael/skydock](https://github.com/crsbymichael/skydock).
+[crosbymichael/skydock](https://github.com/crosbymichael/skydock).
 
 This project was initially created and maintained by [tonistiigi](https://github.com/tonistiigi).
 
