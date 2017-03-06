@@ -28,15 +28,14 @@
 {{$SRC_DIR:= (or .SRC_DIR ".")}}
 
 # build image
-FROM alpine
-
+FROM alpine:3.4
 RUN apk update
 RUN apk upgrade
 RUN apk add go>{{$GOLANG_VERSION}} go-tools>{{$GOLANG_VERSION}} git musl-dev
 
-ENV GOPATH /go
-ENV PATH ${PATH}:/go/bin
-ENV CGO_ENABLED 0
+ENV GOPATH=/go
+ENV PATH=${PATH}:/go/bin
+ENV CGO_ENABLED=0
 
 RUN go get -v github.com/tools/godep
 RUN go get -u github.com/golang/lint/golint
@@ -79,9 +78,7 @@ FROM easypi/alpine-arm
 IMPORT ./dnsdock /bin/dnsdock
 ENTRYPOINT ["dnsdock"]
 TAG aacebedo/dnsdock:{{$DOCKERIMAGE_VERSION}}-{{$ARCH}}
-PUSH aacebedo/dnsdock:{{$DOCKERIMAGE_VERSION}}-{{$ARCH}}
 
 {{if ne $DOCKERIMAGE_VERSION "dev"}}
 TAG aacebedo/dnsdock:latest-{{$ARCH}}
-PUSH aacebedo/dnsdock:latest-{{$ARCH}}
 {{end}}
