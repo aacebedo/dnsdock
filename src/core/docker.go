@@ -1,4 +1,4 @@
-twitch/* docker.go
+/* docker.go
  *
  * Copyright (C) 2016 Alexandre ACEBEDO
  *
