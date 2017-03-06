@@ -206,7 +206,7 @@ func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 		}
 
 		if i == (len(s.config.Nameservers) - 1) {
-			logger.Fatalf("DNS fowarding for '%s' failed: no more nameservers to try", err.Error())
+			logger.Warningf("DNS fowarding failed: no more nameservers to try")
 
 			// Send failure reply
 			m := new(dns.Msg)
@@ -216,7 +216,7 @@ func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 			w.WriteMsg(m)
 
 		} else {
-			logger.Errorf("DNS fowarding for '%s' failed: trying next Nameserver...", err.Error())
+			logger.Debugf("DNS fowarding failed: trying next Nameserver...")
 		}
 	}
 }
