@@ -10,11 +10,9 @@ package core
 
 import (
 	"fmt"
-	"strconv"
-
-	"gopkg.in/alecthomas/kingpin.v2"
-
 	"github.com/aacebedo/dnsdock/src/utils"
+	"gopkg.in/alecthomas/kingpin.v2"
+	"strconv"
 )
 
 const (

@@ -10,15 +10,14 @@ package servers
 
 import (
 	"errors"
+	"fmt"
+	"github.com/aacebedo/dnsdock/src/utils"
+	"github.com/miekg/dns"
 	"net"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/miekg/dns"
-
-	"github.com/aacebedo/dnsdock/src/utils"
 )
 
 // Service represents a container and an attached DNS record
@@ -34,6 +33,13 @@ type Service struct {
 func NewService() (s *Service) {
 	s = &Service{TTL: -1}
 	return
+}
+func (s Service) String() string {
+	return fmt.Sprintf(` Name:    %s
+                       Aliases: %s
+                       IPs:     %s
+                       TTL:     %d
+        `, s.Name, s.Aliases, s.IPs, s.TTL)
 }
 
 // ServiceListProvider represents the entrypoint to get containers
@@ -92,7 +98,8 @@ func (s *DNSServer) AddService(id string, service Service) {
 		id = s.getExpandedID(id)
 		s.services[id] = &service
 
-		logger.Debugf("Added service: '%s': %s.", id, service)
+		logger.Debugf(`Added service: '%s'
+                      %s`, id, service)
 
 		for _, alias := range service.Aliases {
 			logger.Debugf("Handling DNS requests for '%s'.", alias)
@@ -119,7 +126,7 @@ func (s *DNSServer) RemoveService(id string) error {
 
 	delete(s.services, id)
 
-	logger.Debugf("Stopped service '%s'", id)
+	logger.Debugf("Removed service '%s'", id)
 
 	return nil
 }
@@ -188,12 +195,18 @@ func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 
 		in, _, err := c.Exchange(r, s.config.Nameservers[i])
 		if err == nil {
+			if s.config.ForceTtl {
+				logger.Debugf("Forcing Ttl value of the forwarded response")
+				for _, rr := range in.Answer {
+					rr.Header().Ttl = uint32(s.config.Ttl)
+				}
+			}
 			w.WriteMsg(in)
 			return
 		}
 
 		if i == (len(s.config.Nameservers) - 1) {
-			logger.Fatalf("DNS fowarding for '%s' failed: no more nameservers to try", err.Error())
+			logger.Warningf("DNS fowarding failed: no more nameservers to try")
 
 			// Send failure reply
 			m := new(dns.Msg)
@@ -203,7 +216,7 @@ func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 			w.WriteMsg(m)
 
 		} else {
-			logger.Errorf("DNS fowarding for '%s' failed: trying next Nameserver...", err.Error())
+			logger.Debugf("DNS fowarding failed: trying next Nameserver...")
 		}
 	}
 }
@@ -286,7 +299,7 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		query = query[:len(query)-1]
 	}
 
-	logger.Debugf("DNS request for query '%s' from remote '%s'", w.RemoteAddr().String(), w.RemoteAddr())
+	logger.Debugf("DNS request for query '%s' from remote '%s'", query, w.RemoteAddr())
 
 	for service := range s.queryServices(query) {
 		var rr dns.RR

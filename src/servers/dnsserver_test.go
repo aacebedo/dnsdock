@@ -9,14 +9,12 @@
 package servers
 
 import (
+	"github.com/aacebedo/dnsdock/src/utils"
+	"github.com/miekg/dns"
 	"net"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/miekg/dns"
-
-	"github.com/aacebedo/dnsdock/src/utils"
 )
 
 func TestDNSResponse(t *testing.T) {

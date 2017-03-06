@@ -10,11 +10,9 @@ package servers
 
 import (
 	"encoding/json"
-	"net/http"
-
-	"github.com/gorilla/mux"
-
 	"github.com/aacebedo/dnsdock/src/utils"
+	"github.com/gorilla/mux"
+	"net/http"
 )
 
 // HTTPServer represents the http endpoint

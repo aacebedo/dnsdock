@@ -1,4 +1,4 @@
-/* docker.go
+twitch/* docker.go
  *
  * Copyright (C) 2016 Alexandre ACEBEDO
  *
@@ -11,19 +11,17 @@ package core
 import (
 	"crypto/tls"
 	"errors"
-	"net"
-	"regexp"
-	"strconv"
-	"strings"
-
+	"github.com/aacebedo/dnsdock/src/servers"
+	"github.com/aacebedo/dnsdock/src/utils"
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	eventtypes "github.com/docker/engine-api/types/events"
 	"github.com/vdemeester/docker-events"
 	"golang.org/x/net/context"
-
-	"github.com/aacebedo/dnsdock/src/servers"
-	"github.com/aacebedo/dnsdock/src/utils"
+	"net"
+	"regexp"
+	"strconv"
+	"strings"
 )
 
 // DockerManager is the entrypoint to the docker daemon
@@ -62,7 +60,11 @@ func (d *DockerManager) Start() error {
 
 	stopHandler := func(m eventtypes.Message) {
 		logger.Debugf("Stopped container '%s'", m.ID)
-		d.list.RemoveService(m.ID)
+		if !d.config.All {
+			d.list.RemoveService(m.ID)
+		} else {
+			logger.Debugf("Stopped container '%s' not removed as --all argument is true", m.ID)
+		}
 	}
 
 	renameHandler := func(m eventtypes.Message) {
@@ -80,11 +82,19 @@ func (d *DockerManager) Start() error {
 		}
 	}
 
+	destroyHandler := func(m eventtypes.Message) {
+		logger.Debugf("Destroy container '%s'", m.ID)
+		if d.config.All {
+			d.list.RemoveService(m.ID)
+		}
+	}
+
 	eventHandler := events.NewHandler(events.ByAction)
 	eventHandler.Handle("start", startHandler)
 	eventHandler.Handle("stop", stopHandler)
 	eventHandler.Handle("die", stopHandler)
 	eventHandler.Handle("kill", stopHandler)
+	eventHandler.Handle("destroy", destroyHandler)
 	eventHandler.Handle("rename", renameHandler)
 
 	events.MonitorWithHandler(ctx, d.client, types.EventsOptions{}, eventHandler)

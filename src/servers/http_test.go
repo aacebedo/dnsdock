@@ -9,13 +9,12 @@
 package servers
 
 import (
+	"github.com/aacebedo/dnsdock/src/utils"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/aacebedo/dnsdock/src/utils"
 )
 
 func TestServiceRequests(t *testing.T) {

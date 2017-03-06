@@ -9,10 +9,9 @@
 package utils
 
 import (
+	"github.com/op/go-logging"
 	"io/ioutil"
 	"os"
-
-	"github.com/op/go-logging"
 )
 
 // InitLoggers initialize loggers

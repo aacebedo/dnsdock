@@ -32,7 +32,7 @@ FROM alpine
 
 RUN apk update
 RUN apk upgrade
-RUN apk add go>{{$GOLANG_VERSION}} go-tools>{{$GOLANG_VERSION}} git
+RUN apk add go>{{$GOLANG_VERSION}} go-tools>{{$GOLANG_VERSION}} git musl-dev
 
 ENV GOPATH /go
 ENV PATH ${PATH}:/go/bin
@@ -67,6 +67,7 @@ RUN golint -set_exit_status
 RUN go vet
 RUN go test ./...
 {{end}}
+TAG aacebedo/dnsdock-devenv:latest-{{$ARCH}}
 EXPORT /tmp/output/dnsdock ./dnsdock
 
 # run image
