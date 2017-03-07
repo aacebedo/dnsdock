@@ -39,6 +39,7 @@ ENV CGO_ENABLED=0
 
 RUN go get -v github.com/tools/godep
 RUN go get -u github.com/golang/lint/golint
+RUN go get github.com/ahmetb/govvv
 
 RUN mkdir -p /go/src/github.com/aacebedo/dnsdock
 WORKDIR /go/src/github.com/aacebedo/dnsdock
@@ -60,7 +61,7 @@ RUN godep restore
 ENV GOARCH={{$ARCH}}
 WORKDIR /go/src/github.com/aacebedo/dnsdock/src
 ATTACH sh
-RUN go build -o /tmp/output/dnsdock -ldflags "-X main.version=$(if version=$(git describe --contains HEAD 2>/dev/null); then echo $version; else echo "dev"; fi)"
+RUN govvv build -o /tmp/output/dnsdock
 RUN golint -set_exit_status
 {{if eq $ARCH "amd64"}}
 RUN go vet
