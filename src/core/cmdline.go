@@ -43,9 +43,11 @@ func (cmdline *CommandLine) ParseParameters(rawParams []string) (res *utils.Conf
 	tlscert := cmdline.app.Flag("tlscert", "Path to Client certificate").Default(res.TlsCert).String()
 	tlskey := cmdline.app.Flag("tlskey", "Path to client certificate private key").Default(res.TlsKey).String()
 	ttl := cmdline.app.Flag("ttl", "TTL for matched requests").Default(strconv.FormatInt(int64(res.Ttl), 10)).Int()
+	forceTtl := app.Flag("forcettl", "Force TTL value even for forwared requests.").Bool()
 	createAlias := cmdline.app.Flag("alias", "Automatically create an alias with just the container name.").Default(strconv.FormatBool(res.CreateAlias)).Bool()
 	verbose := cmdline.app.Flag("verbose", "Verbose mode.").Default(strconv.FormatBool(res.Verbose)).Short('v').Bool()
 	quiet := cmdline.app.Flag("quiet", "Quiet mode.").Default(strconv.FormatBool(res.Quiet)).Short('q').Bool()
+  all := app.Flag("all", "Process all containers even if they are stopped.").Default(strconv.FormatBool(res.All)).Short('a').Bool()
 
 	kingpin.MustParse(cmdline.app.Parse(rawParams))
 
@@ -62,5 +64,7 @@ func (cmdline *CommandLine) ParseParameters(rawParams []string) (res *utils.Conf
 	res.TlsKey = *tlskey
 	res.Ttl = *ttl
 	res.CreateAlias = *createAlias
+	res.All = *all
+  res.ForceTtl = *forceTtl
 	return
 }
