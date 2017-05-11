@@ -202,7 +202,7 @@ func splitEnv(in []string) (out map[string]string) {
 }
 
 func overrideFromLabels(in *servers.Service, labels map[string]string) (out *servers.Service) {
-	var region string
+	var region, tags string
 	for k, v := range labels {
 		if k == "com.dnsdock.ignore" {
 			return nil
@@ -217,11 +217,7 @@ func overrideFromLabels(in *servers.Service, labels map[string]string) (out *ser
 		}
 
 		if k == "com.dnsdock.tags" {
-			if len(v) == 0 {
-				in.Name = ""
-			} else {
-				in.Name = strings.Split(v, ",")[0]
-			}
+			tags = v
 		}
 
 		if k == "com.dnsdock.image" {
@@ -260,8 +256,13 @@ func overrideFromLabels(in *servers.Service, labels map[string]string) (out *ser
 		}
 	}
 
+	if len(tags) > 0 {
+		// Currently only supports the first tag, but should be able to create multiple services,
+		// i.e. an array for in.Name, to support multiple service creation
+		in.Name = strings.Split(tags, ",")[0] + "." + in.Name
+	}
 	if len(region) > 0 {
-		in.Image = in.Image + "." + region
+		in.Image = region + "." + in.Image
 	}
 	out = in
 	return

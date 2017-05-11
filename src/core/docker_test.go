@@ -109,3 +109,30 @@ func TestOverrideFromEnv(t *testing.T) {
 	}
 
 }
+
+func TestOverrideFromLabels(t *testing.T) {
+	getService := func() *servers.Service {
+		service := servers.NewService()
+		service.Name = "myfoo"
+		service.Image = "mybar"
+		return service
+	}
+
+	s := getService()
+	s = overrideFromLabels(s, map[string]string{"com.dnsdock.ignore": "1"})
+	if s != nil {
+		t.Error("Skipping failed")
+	}
+
+	s = getService()
+	s = overrideFromLabels(s, map[string]string{"com.dnsdock.name": "master", "com.dnsdock.image": "mysql", "com.dnsdock.ttl": "22"})
+	if s.Name != "master" || s.Image != "mysql" || s.TTL != 22 {
+		t.Error("Invalid name, image label overrides", s)
+	}
+
+	s = getService()
+	s = overrideFromLabels(s, map[string]string{"com.dnsdock.tags": "something,other", "com.dnsdock.name": "master", "com.dnsdock.region": "us2", "com.dnsdock.image": "mysql"})
+	if s.Name != "something.master" || s.Image != "us2.mysql" {
+		t.Error("Invalid tags, name, region, image label override", s)
+	}
+}
