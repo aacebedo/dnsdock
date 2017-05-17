@@ -50,6 +50,150 @@ type ServiceListProvider interface {
 	GetAllServices() map[string]Service
 }
 
+
+type DNSSearchTree struct {
+  root *dnsTreeNode
+  domain utils.Domain
+}
+
+func NewDNSSearchTree(domain utils.Domain) *DNSSearchTree {
+  return &DNSSearchTree {
+    root: &dnsTreeNode{
+    		slug:     "",
+    		children: make(map[string]*dnsTreeNode),
+    		services: make([]*Service, 0),
+    },
+    domain: domain,
+  }
+}
+
+func (cache *DNSSearchTree) Add(service *Service) {
+  serviceNames := cache.serviceNames(service)
+	for i := 0; i < len(serviceNames); i++ {
+		cache.root.addServicePath(service, serviceNames[i])
+	}
+}
+
+func (cache *DNSSearchTree) Remove(service *Service) {
+  serviceNames := cache.serviceNames(service)
+	for i := 0; i < len(serviceNames); i++ {
+		cache.root.removeServicePath(serviceNames[i])
+	}
+}
+
+func (cache *DNSSearchTree) Search(query string) []*Service {
+  return cache.root.search(strings.Split(query, "."))
+}
+
+func (cache *DNSSearchTree) serviceNames(service *Service) [][]string {
+  result := [][]string {}
+
+  nameParts := []string{}
+  if len(service.Name) > 0 {
+    nameParts = append(nameParts, strings.Split(strings.ToLower(service.Name), ".")...)
+  }
+  if len(service.Image) > 0 {
+    nameParts = append(nameParts, strings.Split(service.Image, ".")...)
+  }
+  nameParts = append(nameParts, cache.domain...)
+  result = append(result, nameParts)
+
+  for _, alias := range service.Aliases {
+    result = append(result, strings.Split(alias, "."))
+  }
+  return result
+}
+
+type dnsTreeNode struct {
+	slug     string
+	children map[string]*dnsTreeNode
+	services []*Service
+}
+
+func (node *dnsTreeNode) addServicePath(service *Service, nameParts []string) {
+	currentNode := node
+	for i := len(nameParts) - 1; i >= 0; i-- {
+		namePart := nameParts[i]
+
+		v, ok := currentNode.children[namePart]
+		if !ok {
+			var services []*Service
+			if i == 0 {
+				services = []*Service{service}
+			} else {
+				services = make([]*Service, 0)
+			}
+
+			v = &dnsTreeNode{
+				slug:     namePart,
+				children: make(map[string]*dnsTreeNode),
+				services: services,
+			}
+			currentNode.children[namePart] = v
+		}
+		currentNode = v
+	}
+}
+
+func (node *dnsTreeNode) removeServicePath(nameParts []string) {
+  currentNode := node
+  for i := len(nameParts) - 1; i >= 0; i-- {
+    namePart := nameParts[i]
+
+    v, ok := currentNode.children[namePart]
+    if !ok {
+      return
+    }
+    if i == 0 {
+      if len(v.children) == 0 {
+        delete(currentNode.children, namePart)
+      } else {
+        v.services = []*Service{}
+      }
+    } else {
+      currentNode = v
+    }
+  }
+}
+
+func (node *dnsTreeNode) search(nameParts []string) []*Service {
+	currentNode := node
+	for i := len(nameParts) - 1; i >= 0; i-- {
+		namePart := nameParts[i]
+
+		if i > 0 {
+			v, ok := currentNode.children[namePart]
+			if !ok {
+				return currentNode.services
+			} else {
+				currentNode = v
+			}
+		} else {
+			if namePart == "*" {
+				// return collection of subdomain services
+				return currentNode.populateServices()
+			} else {
+				v, ok := currentNode.children[namePart]
+				if ok {
+					return v.services
+				} else {
+					return currentNode.services
+				}
+			}
+		}
+	}
+	return []*Service{}
+}
+
+func (node *dnsTreeNode) populateServices() []*Service {
+  result := []*Service{}
+  result = append(result, node.services...)
+  for _, child := range node.children {
+    result = append(result, child.populateServices()...)
+  }
+  return result
+}
+
 // DNSServer represents a DNS server
 type DNSServer struct {
 	config   *utils.Config
@@ -57,6 +201,7 @@ type DNSServer struct {
 	mux      *dns.ServeMux
 	services map[string]*Service
 	lock     *sync.RWMutex
+	dnsTree  *DNSSearchTree
 }
 
 // NewDNSServer create a new DNSServer
@@ -65,6 +210,7 @@ func NewDNSServer(c *utils.Config) *DNSServer {
 		config:   c,
 		services: make(map[string]*Service),
 		lock:     &sync.RWMutex{},
+		dnsTree: NewDNSSearchTree(c.Domain),
 	}
 
 	logger.Debugf("Handling DNS requests for '%s'.", c.Domain.String())
@@ -97,6 +243,7 @@ func (s *DNSServer) AddService(id string, service Service) {
 
 		id = s.getExpandedID(id)
 		s.services[id] = &service
+		s.dnsTree.Add(&service)
 
 		logger.Debugf(`Added service: '%s'
                       %s`, id, service)
@@ -124,6 +271,7 @@ func (s *DNSServer) RemoveService(id string) error {
 		s.mux.HandleRemove(alias + ".")
 	}
 
+	s.dnsTree.Remove(s.services[id])
 	delete(s.services, id)
 
 	logger.Debugf("Removed service '%s'", id)
@@ -412,39 +560,43 @@ func (s *DNSServer) queryIP(query string) chan *Service {
 }
 
 func (s *DNSServer) queryServices(query string) chan *Service {
-	c := make(chan *Service, 3)
+	c := make(chan *Service)
 
 	go func() {
-		query := strings.Split(strings.ToLower(query), ".")
+		//query := strings.Split(strings.ToLower(query), ".")
 
 		defer s.lock.RUnlock()
 		s.lock.RLock()
 
-		for _, service := range s.services {
-			// create the name for this service, skip empty strings
-			test := []string{}
-			// todo: add some cache to avoid calculating this every time
-			if len(service.Name) > 0 {
-				test = append(test, strings.Split(strings.ToLower(service.Name), ".")...)
-			}
-
-			if len(service.Image) > 0 {
-				test = append(test, strings.Split(service.Image, ".")...)
-			}
-
-			test = append(test, s.config.Domain...)
-
-			if isPrefixQuery(query, test) {
-				c <- service
-			}
-
-			// check aliases
-			for _, alias := range service.Aliases {
-				if isPrefixQuery(query, strings.Split(alias, ".")) {
-					c <- service
-				}
-			}
+		result := s.dnsTree.Search(strings.ToLower(query))
+		for i:=0; i < len(result); i++ {
+			c <- result[i]
 		}
+		// for _, service := range s.services {
+		// 	// create the name for this service, skip empty strings
+		// 	test := []string{}
+		// 	// todo: add some cache to avoid calculating this every time
+		// 	if len(service.Name) > 0 {
+		// 		test = append(test, strings.Split(strings.ToLower(service.Name), ".")...)
+		// 	}
+		//
+		// 	if len(service.Image) > 0 {
+		// 		test = append(test, strings.Split(service.Image, ".")...)
+		// 	}
+		//
+		// 	test = append(test, s.config.Domain...)
+		//
+		// 	if isPrefixQuery(query, test) {
+		// 		c <- service
+		// 	}
+		//
+		// 	// check aliases
+		// 	for _, alias := range service.Aliases {
+		// 		if isPrefixQuery(query, strings.Split(alias, ".")) {
+		// 			c <- service
+		// 		}
+		// 	}
+		// }
 
 		close(c)
 

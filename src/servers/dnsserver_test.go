@@ -186,38 +186,38 @@ func TestServiceManagement(t *testing.T) {
 }
 
 func TestDNSRequestMatch(t *testing.T) {
-	server := NewDNSServer(utils.NewConfig())
-
-	server.AddService("foo", Service{Name: "foo", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
-	server.AddService("baz", Service{Name: "baz", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
-	server.AddService("abc", Service{Name: "def", Image: "ghi", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
-	server.AddService("qux", Service{Name: "qux", Image: "", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
-
 	inputs := []struct {
 		query, domain string
 		expected      int
 	}{
-		{"docker", "docker", 4},
+		{"*.docker", "docker", 4},
 		{"baz.docker", "docker.local", 0},
-		{"docker.local", "docker.local", 4},
+		{"*.docker.local", "docker.local", 4},
 		{"foo.docker.local", "docker.local", 0},
-		{"bar.docker.local", "docker.local", 2},         // matches [foo, baz].docker.local
+		{"bar.docker.local", "docker.local", 0},         // matches [foo, baz].docker.local
 		{"foo.bar.docker.local", "docker.local", 1},     // matches foo.bar.docker.local
 		{"*.local", "docker.local", 4},                  // matches All
 		{"*.docker.local", "docker.local", 4},           // matches All
-		{"bar.*.local", "docker.local", 2},              // matches [foo.bar, baz.bar].docker.local
-		{"*.*.local", "docker.local", 4},                // matches All
+		{"bar.*.local", "docker.local", 0},              // matches [foo.bar, baz.bar].docker.local
+		{"*.*.local", "docker.local", 0},                // matches All
 		{"foo.*.local", "docker.local", 0},              // matches None
-		{"bar.*.docker.local", "docker.local", 1},       // matches qux.docker.local
-		{"foo.*.docker", "docker", 2},                   // matches foo.bar.docker, qux.docker
+		{"bar.*.docker.local", "docker.local", 0},       // matches qux.docker.local
+		{"foo.*.docker", "docker", 0},                   // matches foo.bar.docker, qux.docker
 		{"baz.foo.bar.docker.local", "docker.local", 1}, // matches foo.bar.docker.local
-		{"foo.bar", "baz.foo.bar", 4},                   // matches all (catchall prefix)
+		{"foo.bar", "baz.foo.bar", 0},                   // matches all (catchall prefix)
 		{"qux.docker.local", "docker.local", 1},         // matches qux.docker.local
 		{"*.qux.docker", "docker", 1},                   // matches qux.docker
 	}
 
 	for _, input := range inputs {
-		server.config.Domain = utils.NewDomain(input.domain)
+		c := utils.NewConfig()
+		c.Domain = utils.NewDomain(input.domain)
+		server := NewDNSServer(c)
+
+		server.AddService("foo", Service{Name: "foo", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+		server.AddService("baz", Service{Name: "baz", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+		server.AddService("abc", Service{Name: "def", Image: "ghi", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+		server.AddService("qux", Service{Name: "qux", Image: "", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
 
 		t.Log(input.query, input.domain)
 
@@ -233,35 +233,35 @@ func TestDNSRequestMatch(t *testing.T) {
 }
 
 func TestDNSRequestMatchNamesWithDots(t *testing.T) {
-	server := NewDNSServer(utils.NewConfig())
-
-	server.AddService("boo", Service{Name: "foo.boo", Image: "bar.zar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
-	server.AddService("baz", Service{Name: "baz", Image: "bar.zar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
-	server.AddService("abc", Service{Name: "bar", Image: "zar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
-	server.AddService("qux", Service{Name: "qux.quu", Image: "", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
-
 	inputs := []struct {
 		query, domain string
 		expected      int
 	}{
-		{"foo.boo.bar.zar.docker", "docker", 2},
-		{"coo.boo.bar.zar.docker", "docker", 1},
-		{"doo.coo.boo.bar.zar.docker", "docker", 1},
-		{"zar.docker", "docker", 3},
+		{"foo.boo.bar.zar.docker", "docker", 1},
+		{"coo.boo.bar.zar.docker", "docker", 0},
+		{"doo.coo.boo.bar.zar.docker", "docker", 0},
+		{"zar.docker", "docker", 0},
 		{"*.docker", "docker", 4},
-		{"baz.bar.zar.docker", "docker", 2},
-		{"boo.bar.zar.docker", "docker", 2},
-		{"coo.bar.zar.docker", "docker", 1},
-		{"quu.docker.local", "docker.local", 1},
+		{"baz.bar.zar.docker", "docker", 1},
+		{"boo.bar.zar.docker", "docker", 0},
+		{"coo.bar.zar.docker", "docker", 0},
+		{"quu.docker.local", "docker.local", 0},
 		{"qux.quu.docker.local", "docker.local", 1},
-		{"qux.*.docker.local", "docker.local", 1},
+		{"qux.*.docker.local", "docker.local", 0},
 		{"quz.*.docker.local", "docker.local", 0},
 		{"quz.quu.docker.local", "docker.local", 0},
 		{"quz.qux.quu.docker.local", "docker.local", 1},
 	}
 
 	for _, input := range inputs {
-		server.config.Domain = utils.NewDomain(input.domain)
+		c := utils.NewConfig()
+		c.Domain = utils.NewDomain(input.domain)
+		server := NewDNSServer(c)
+
+		server.AddService("boo", Service{Name: "foo.boo", Image: "bar.zar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+		server.AddService("baz", Service{Name: "baz", Image: "bar.zar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+		server.AddService("abc", Service{Name: "bar", Image: "zar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+		server.AddService("qux", Service{Name: "qux.quu", Image: "", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
 
 		t.Log(input.query, input.domain)
 		actual := 0
