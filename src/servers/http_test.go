@@ -20,7 +20,7 @@ import (
 func TestServiceRequests(t *testing.T) {
 	const TestAddr = "127.0.0.1:9980"
 
-	config := utils.NewConfig()
+	config := utils.NewConfig(utils.NewDomain("testdomain"))
 	config.HttpAddr = TestAddr
 
 	server := NewHTTPServer(config, NewDNSServer(config))

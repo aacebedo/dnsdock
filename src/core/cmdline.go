@@ -30,7 +30,7 @@ func NewCommandLine(version string) (res *CommandLine) {
 
 // ParseParameters Parse parameters
 func (cmdline *CommandLine) ParseParameters(rawParams []string) (res *utils.Config, err error) {
-	res = utils.NewConfig()
+
 
 	nameservers := cmdline.app.Flag("nameserver", "Comma separated list of DNS server(s) for unmatched requests").Default("8.8.8.8:53").Strings()
 	dns := cmdline.app.Flag("dns", "Listen DNS requests on this address").Default(res.DnsAddr).Short('d').String()
@@ -43,20 +43,19 @@ func (cmdline *CommandLine) ParseParameters(rawParams []string) (res *utils.Conf
 	tlscert := cmdline.app.Flag("tlscert", "Path to Client certificate").Default(res.TlsCert).String()
 	tlskey := cmdline.app.Flag("tlskey", "Path to client certificate private key").Default(res.TlsKey).String()
 	ttl := cmdline.app.Flag("ttl", "TTL for matched requests").Default(strconv.FormatInt(int64(res.Ttl), 10)).Int()
-	forceTtl := app.Flag("forcettl", "Force TTL value even for forwared requests.").Bool()
+	forceTtl := cmdline.app.Flag("forcettl", "Force TTL value even for forwared requests.").Bool()
 	createAlias := cmdline.app.Flag("alias", "Automatically create an alias with just the container name.").Default(strconv.FormatBool(res.CreateAlias)).Bool()
 	verbose := cmdline.app.Flag("verbose", "Verbose mode.").Default(strconv.FormatBool(res.Verbose)).Short('v').Bool()
 	quiet := cmdline.app.Flag("quiet", "Quiet mode.").Default(strconv.FormatBool(res.Quiet)).Short('q').Bool()
-  all := app.Flag("all", "Process all containers even if they are stopped.").Default(strconv.FormatBool(res.All)).Short('a').Bool()
+    all := cmdline.app.Flag("all", "Process all containers even if they are stopped.").Default(strconv.FormatBool(res.All)).Short('a').Bool()
 
 	kingpin.MustParse(cmdline.app.Parse(rawParams))
-
+	res = utils.NewConfig(utils.NewDomain(fmt.Sprintf("%s.%s", *environment, *domain)))
 	res.Verbose = *verbose
 	res.Quiet = *quiet
 	res.Nameservers = *nameservers
 	res.DnsAddr = *dns
 	res.HttpAddr = *http
-	res.Domain = utils.NewDomain(fmt.Sprintf("%s.%s", *environment, *domain))
 	res.DockerHost = *docker
 	res.TlsVerify = *tlsverify
 	res.TlsCaCert = *tlscacert

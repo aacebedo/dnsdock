@@ -18,9 +18,10 @@ import (
 )
 
 func TestDNSResponse(t *testing.T) {
+	utils.InitLoggers(2)
 	const TestAddr = "127.0.0.1:9953"
 
-	config := utils.NewConfig()
+	config := utils.NewConfig(utils.NewDomain("testdomain"))
 	config.DnsAddr = TestAddr
 
 	server := NewDNSServer(config)
@@ -210,8 +211,7 @@ func TestDNSRequestMatch(t *testing.T) {
 	}
 
 	for _, input := range inputs {
-		c := utils.NewConfig()
-		c.Domain = utils.NewDomain(input.domain)
+		c := utils.NewConfig(utils.NewDomain(input.domain))
 		server := NewDNSServer(c)
 
 		server.AddService("foo", Service{Name: "foo", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
@@ -254,8 +254,7 @@ func TestDNSRequestMatchNamesWithDots(t *testing.T) {
 	}
 
 	for _, input := range inputs {
-		c := utils.NewConfig()
-		c.Domain = utils.NewDomain(input.domain)
+		c := utils.NewConfig(utils.NewDomain(input.domain))
 		server := NewDNSServer(c)
 
 		server.AddService("boo", Service{Name: "foo.boo", Image: "bar.zar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
@@ -276,7 +275,7 @@ func TestDNSRequestMatchNamesWithDots(t *testing.T) {
 }
 
 func TestgetExpandedID(t *testing.T) {
-	server := NewDNSServer(utils.NewConfig())
+	server := NewDNSServer(utils.NewConfig(utils.NewDomain("testdomain")))
 
 	server.AddService("416261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f142bc0df", Service{})
 	server.AddService("316261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f14nothex", Service{})

@@ -70,7 +70,7 @@ type Config struct {
 }
 
 // NewConfig creates a new config
-func NewConfig() *Config {
+func NewConfig(domain Domain) *Config {
 	dockerHost := os.Getenv("DOCKER_HOST")
 	if len(dockerHost) == 0 {
 		dockerHost = "unix:///var/run/docker.sock"
@@ -84,7 +84,7 @@ func NewConfig() *Config {
 	return &Config{
 		Nameservers: nameservers{"8.8.8.8:53"},
 		DnsAddr:     ":53",
-		Domain:      NewDomain("docker"),
+		Domain:      domain,
 		DockerHost:  dockerHost,
 		HttpAddr:    ":80",
 		CreateAlias: false,
