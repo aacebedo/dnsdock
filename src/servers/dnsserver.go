@@ -67,25 +67,34 @@ func NewDNSSearchTree(domain utils.Domain) *DNSSearchTree {
   }
 }
 
-func (cache *DNSSearchTree) Add(service *Service) {
-  serviceNames := cache.serviceNames(service)
+func (tree *DNSSearchTree) Dump() {
+	logger.Debugf("<root>")
+	tree.root.Dump(0)
+}
+
+func (tree *DNSSearchTree) Add(service *Service) {
+  serviceNames := tree.serviceNames(service)
 	for i := 0; i < len(serviceNames); i++ {
-		cache.root.addServicePath(service, serviceNames[i])
+		tree.root.addServicePath(service, serviceNames[i])
 	}
+  logger.Debugf("A new element has been added to the search tree, DNS search tree contains :")
+  tree.Dump()
 }
 
-func (cache *DNSSearchTree) Remove(service *Service) {
-  serviceNames := cache.serviceNames(service)
+func (tree *DNSSearchTree) Remove(service *Service) {
+  serviceNames := tree.serviceNames(service)
 	for i := 0; i < len(serviceNames); i++ {
-		cache.root.removeServicePath(serviceNames[i])
+		tree.root.removeServicePath(serviceNames[i])
 	}
+  logger.Debugf("An element has been removed from the search tree, DNS search tree contains :")
+  tree.Dump()
 }
 
-func (cache *DNSSearchTree) Search(query string) []*Service {
-  return cache.root.search(strings.Split(query, "."))
+func (tree *DNSSearchTree) Search(query string) []*Service {
+  return tree.root.search(strings.Split(query, "."))
 }
 
-func (cache *DNSSearchTree) serviceNames(service *Service) [][]string {
+func (tree *DNSSearchTree) serviceNames(service *Service) [][]string {
   result := [][]string {}
 
   nameParts := []string{}
@@ -95,7 +104,7 @@ func (cache *DNSSearchTree) serviceNames(service *Service) [][]string {
   if len(service.Image) > 0 {
     nameParts = append(nameParts, strings.Split(service.Image, ".")...)
   }
-  nameParts = append(nameParts, cache.domain...)
+  nameParts = append(nameParts, tree.domain...)
   result = append(result, nameParts)
 
   for _, alias := range service.Aliases {
@@ -108,6 +117,14 @@ type dnsTreeNode struct {
 	slug     string
 	children map[string]*dnsTreeNode
 	services []*Service
+}
+
+func (tree *dnsTreeNode) Dump(indent int) {
+	for k, v := range tree.children {
+		format := fmt.Sprintf("%%%ds|_%%s", indent)
+		logger.Debugf(format, " ", k)
+		v.Dump(indent+4)
+	}
 }
 
 func (node *dnsTreeNode) addServicePath(service *Service, nameParts []string) {
