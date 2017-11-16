@@ -36,10 +36,11 @@ func NewService() (s *Service) {
 }
 func (s Service) String() string {
 	return fmt.Sprintf(` Name:    %s
+                       Image: %s
                        Aliases: %s
                        IPs:     %s
                        TTL:     %d
-        `, s.Name, s.Aliases, s.IPs, s.TTL)
+        `, s.Name, s.Image, s.Aliases, s.IPs, s.TTL)
 }
 
 // ServiceListProvider represents the entrypoint to get containers

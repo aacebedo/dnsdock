@@ -232,6 +232,8 @@ docker run -e DNSDOCK_ALIAS=db.docker,sql.docker -e DNSDOCK_TTL=10 \
 # matches db.docker and sql.docker
 ```
 
+Service metadata syntax by [progrium/registrator](https://github.com/progrium/registrator) is also supported.
+
 #### Overrides with docker labels
 
 If you wish to fine tune the DNS response addresses you can define specific labels during 
@@ -239,6 +241,8 @@ container creation. This overrides the default matching scheme from container an
 
 Supported labels are `com.dnsdock.ignore`, `com.dnsdock.alias`, `com.dnsdock.name`, `com.dnsdock.tags`, `com.dnsdock.image`,
 `com.dnsdock.ttl`, `com.dnsdock.region`, and `com.dnsdock.ip_addr`
+
+Names use the following format **[tag].[name].[region].[image].[environment].[domain]**
 
 ```
 docker run -l com.dnsdock.name=master -l com.dnsdocker.image=mysql -l com.dnsdock.ttl=10 \
@@ -252,12 +256,10 @@ docker run -l com.dnsdock.alias=db.docker,sql.docker -l com.dnsdock.ttl=10 \
 # matches db.docker and sql.docker
 ```
 
-Service metadata syntax by [progrium/registrator](https://github.com/progrium/registrator) is also supported.
-
 ```
-docker run -l com.dnsdock.tags=master -l com.dnsdock.name=mysql -l com.dnsdock.region=us2 \
+docker run -l com.dnsdock.tags=master -l com.dnsdock.name=db -l com.dnsdock.region=us2 -l com.dnsdock.image=mysql \
            --name mymysql mysqlimage
-# matches master.mysql.us2.docker
+# matches master.db.us2.mysql.docker
 ```
 
 If you want dnsdock to skip processing a specific container set its
