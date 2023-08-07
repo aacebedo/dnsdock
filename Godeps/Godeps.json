@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/aacebedo/dnsdock",
+	"ImportPath": "github.com/p1c2u/dnsdock",
 	"GoVersion": "go1.6",
 	"GodepVersion": "v74",
 	"Packages": [

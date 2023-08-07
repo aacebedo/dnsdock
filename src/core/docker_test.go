@@ -9,7 +9,7 @@
 package core
 
 import (
-	"github.com/aacebedo/dnsdock/src/servers"
+	"github.com/p1c2u/dnsdock/src/servers"
 	"reflect"
 	"testing"
 )
