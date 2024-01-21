@@ -11,9 +11,9 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/p1c2u/dnsdock/src/core"
-	"github.com/p1c2u/dnsdock/src/servers"
-	"github.com/p1c2u/dnsdock/src/utils"
+	"github.com/dz3n/dnsdock/src/core"
+	"github.com/dz3n/dnsdock/src/servers"
+	"github.com/dz3n/dnsdock/src/utils"
 	"github.com/op/go-logging"
 	"io/ioutil"
 	"os"

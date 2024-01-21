@@ -10,7 +10,7 @@ package servers
 
 import (
 	"encoding/json"
-	"github.com/p1c2u/dnsdock/src/utils"
+	"github.com/dz3n/dnsdock/src/utils"
 	"github.com/gorilla/mux"
 	"net/http"
 )

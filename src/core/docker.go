@@ -11,8 +11,8 @@ package core
 import (
 	"crypto/tls"
 	"errors"
-	"github.com/p1c2u/dnsdock/src/servers"
-	"github.com/p1c2u/dnsdock/src/utils"
+	"github.com/dz3n/dnsdock/src/servers"
+	"github.com/dz3n/dnsdock/src/utils"
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	eventtypes "github.com/docker/engine-api/types/events"
@@ -35,7 +35,7 @@ type DockerManager struct {
 // NewDockerManager creates a new DockerManager
 func NewDockerManager(c *utils.Config, list servers.ServiceListProvider, tlsConfig *tls.Config) (*DockerManager, error) {
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
-	dclient, err := client.NewClient(c.DockerHost, "v1.22", nil, defaultHeaders)
+	dclient, err := client.NewClient(c.DockerHost, "v1.30", nil, defaultHeaders)
 
 	if err != nil {
 		return nil, err

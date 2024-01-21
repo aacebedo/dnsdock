@@ -1,6 +1,6 @@
 services:
     dnsdock:
-        image: p1c2u/dnsdock
+        image: dz3n/dnsdock
         container_name: dnsdock
         command: -nameserver 192.168.0.1:53 -nameserver 8.8.8.8:53
         volumes:

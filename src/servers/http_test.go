@@ -9,7 +9,7 @@
 package servers
 
 import (
-	"github.com/p1c2u/dnsdock/src/utils"
+	"github.com/dz3n/dnsdock/src/utils"
 	"io/ioutil"
 	"net/http"
 	"strings"

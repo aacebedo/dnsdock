@@ -11,7 +11,7 @@ package servers
 import (
 	"errors"
 	"fmt"
-	"github.com/p1c2u/dnsdock/src/utils"
+	"github.com/dz3n/dnsdock/src/utils"
 	"github.com/miekg/dns"
 	"net"
 	"regexp"
