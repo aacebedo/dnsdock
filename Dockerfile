@@ -29,13 +29,15 @@ ENV GIT_SSL_NO_VERIFY=true
 
 RUN godep restore
 
-ENV GOARCH=arm64
+ENV GOARCH=amd64
 
 WORKDIR /go/src/github.com/dz3n/dnsdock/src
 
 RUN govvv build -o /tmp/output/dnsdock
 
 FROM alpine:3.18.2
+
+ENV GOARCH=amd64
 
 COPY --from=builder /tmp/output/dnsdock /bin/dnsdock
 
