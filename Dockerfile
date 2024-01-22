@@ -14,16 +14,16 @@ RUN go get -v github.com/tools/godep
 # RUN go get -u github.com/golang/lint/golint
 RUN go get github.com/ahmetb/govvv
 
-RUN mkdir -p /go/src/github.com/dz3n/dnsdock
+RUN mkdir -p /go/src/github.com/aacebedo/dnsdock
 
-WORKDIR /go/src/github.com/dz3n/dnsdock
+WORKDIR /go/src/github.com/aacebedo/dnsdock
 
-RUN git clone https://github.com/dz3n/dnsdock /go/src/github.com/dz3n/dnsdock
+RUN git clone https://github.com/aacebedo/dnsdock /go/src/github.com/aacebedo/dnsdock
 # RUN git checkout {{$GIT_COMMIT}}
 
 RUN mkdir /tmp/output
 
-WORKDIR /go/src/github.com/dz3n/dnsdock
+WORKDIR /go/src/github.com/aacebedo/dnsdock
 
 ENV GIT_SSL_NO_VERIFY=true
 
@@ -31,7 +31,7 @@ RUN godep restore
 
 ENV GOARCH=amd64
 
-WORKDIR /go/src/github.com/dz3n/dnsdock/src
+WORKDIR /go/src/github.com/aacebedo/dnsdock/src
 
 RUN govvv build -o /tmp/output/dnsdock
 

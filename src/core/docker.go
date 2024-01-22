@@ -11,8 +11,8 @@ package core
 import (
 	"crypto/tls"
 	"errors"
-	"github.com/dz3n/dnsdock/src/servers"
-	"github.com/dz3n/dnsdock/src/utils"
+	"github.com/aacebedo/dnsdock/src/servers"
+	"github.com/aacebedo/dnsdock/src/utils"
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	eventtypes "github.com/docker/engine-api/types/events"
