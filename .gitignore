@@ -1,1 +1,4 @@
 dnsdock
+.go
+.devbox
+dist/
