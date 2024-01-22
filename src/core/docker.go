@@ -35,7 +35,7 @@ type DockerManager struct {
 // NewDockerManager creates a new DockerManager
 func NewDockerManager(c *utils.Config, list servers.ServiceListProvider, tlsConfig *tls.Config) (*DockerManager, error) {
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
-	dclient, err := client.NewClient(c.DockerHost, "v1.22", nil, defaultHeaders)
+	dclient, err := client.NewClient(c.DockerHost, "v1.44", nil, defaultHeaders)
 
 	if err != nil {
 		return nil, err
