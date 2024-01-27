@@ -44,7 +44,7 @@ func (s Service) String() string {
 
 // ServiceListProvider represents the entrypoint to get containers
 type ServiceListProvider interface {
-	AddService(string, Service)
+	AddService(string, Service) error
 	RemoveService(string) error
 	GetService(string) (Service, error)
 	GetAllServices() map[string]Service
@@ -85,17 +85,21 @@ func (s *DNSServer) Start() error {
 }
 
 // Stop stops the DNSServer
-func (s *DNSServer) Stop() {
-	s.server.Shutdown()
+func (s *DNSServer) Stop() error {
+	return s.server.Shutdown()
 }
 
 // AddService adds a new container and thus new DNS records
-func (s *DNSServer) AddService(id string, service Service) {
+func (s *DNSServer) AddService(id string, service Service) (err error) {
 	if len(service.IPs) > 0 {
 		defer s.lock.Unlock()
 		s.lock.Lock()
 
-		id = s.getExpandedID(id)
+		id, err = s.getExpandedID(id)
+		if err != nil {
+			return err
+		}
+
 		s.services[id] = &service
 
 		logger.Debugf(`Added service: '%s'
@@ -106,16 +110,21 @@ func (s *DNSServer) AddService(id string, service Service) {
 			s.mux.HandleFunc(alias+".", s.handleRequest)
 		}
 	} else {
-		logger.Warningf("Service '%s' ignored: No IP provided:", id, id)
+		return fmt.Errorf("Service '%s' ignored: No IP provided:", id)
 	}
+
+	return nil
 }
 
 // RemoveService removes a new container and thus DNS records
-func (s *DNSServer) RemoveService(id string) error {
+func (s *DNSServer) RemoveService(id string) (err error) {
 	defer s.lock.Unlock()
 	s.lock.Lock()
 
-	id = s.getExpandedID(id)
+	id, err = s.getExpandedID(id)
+	if err != nil {
+		return err
+	}
 	if _, ok := s.services[id]; !ok {
 		return errors.New("No such service: " + id)
 	}
@@ -136,7 +145,10 @@ func (s *DNSServer) GetService(id string) (Service, error) {
 	defer s.lock.RUnlock()
 	s.lock.RLock()
 
-	id = s.getExpandedID(id)
+	id, err := s.getExpandedID(id)
+	if err != nil {
+		return *new(Service), err
+	}
 	if s, ok := s.services[id]; ok {
 		return *s, nil
 	}
@@ -201,7 +213,11 @@ func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 					rr.Header().Ttl = uint32(s.config.Ttl)
 				}
 			}
-			w.WriteMsg(in)
+
+			res := w.WriteMsg(in)
+			if res != nil {
+				logger.Errorf("Unable to write response: '%s' ", res)
+			}
 			return
 		}
 
@@ -213,7 +229,10 @@ func (s *DNSServer) handleForward(w dns.ResponseWriter, r *dns.Msg) {
 			m.SetReply(r)
 			m.Ns = s.createSOA()
 			m.SetRcode(r, dns.RcodeRefused) // REFUSED
-			w.WriteMsg(m)
+			res := w.WriteMsg(m)
+			if res != nil {
+				logger.Errorf("Unable to write response: '%s' ", res)
+			}
 
 		} else {
 			logger.Debugf("DNS fowarding failed: trying next Nameserver...")
@@ -280,14 +299,20 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	// Send empty response for empty requests
 	if len(r.Question) == 0 {
 		m.Ns = s.createSOA()
-		w.WriteMsg(m)
+		res := w.WriteMsg(m)
+		if res != nil {
+			logger.Errorf("Unable to write response: '%s' ", res)
+		}
 		return
 	}
 
 	// respond to SOA requests
 	if r.Question[0].Qtype == dns.TypeSOA {
 		m.Answer = s.createSOA()
-		w.WriteMsg(m)
+		res := w.WriteMsg(m)
+		if res != nil {
+			logger.Errorf("Unable to write response: '%s' ", res)
+		}
 		return
 	}
 
@@ -314,7 +339,10 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			// immediately return an empty NOERROR reply.
 			m.Ns = s.createSOA()
 			m.MsgHdr.Authoritative = true
-			w.WriteMsg(m)
+			res := w.WriteMsg(m)
+			if res != nil {
+				logger.Errorf("Unable to write response: '%s' ", res)
+			}
 			return
 		}
 
@@ -330,7 +358,10 @@ func (s *DNSServer) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		logger.Debugf("No DNS record found for query '%s'", query)
 	}
 
-	w.WriteMsg(m)
+	res := w.WriteMsg(m)
+	if res != nil {
+		logger.Errorf("Unable to write response: '%s' ", res)
+	}
 }
 
 func (s *DNSServer) handleReverseRequest(w dns.ResponseWriter, r *dns.Msg) {
@@ -341,7 +372,10 @@ func (s *DNSServer) handleReverseRequest(w dns.ResponseWriter, r *dns.Msg) {
 	// Send empty response for empty requests
 	if len(r.Question) == 0 {
 		m.Ns = s.createSOA()
-		w.WriteMsg(m)
+		res := w.WriteMsg(m)
+		if res != nil {
+			logger.Errorf("Unable to write response: '%s' ", res)
+		}
 		return
 	}
 
@@ -356,7 +390,10 @@ func (s *DNSServer) handleReverseRequest(w dns.ResponseWriter, r *dns.Msg) {
 	for service := range s.queryIP(query) {
 		if r.Question[0].Qtype != dns.TypePTR {
 			m.Ns = s.createSOA()
-			w.WriteMsg(m)
+			res := w.WriteMsg(m)
+			if res != nil {
+				logger.Errorf("Unable to write response: '%s' ", res)
+			}
 			return
 		}
 
@@ -382,7 +419,11 @@ func (s *DNSServer) handleReverseRequest(w dns.ResponseWriter, r *dns.Msg) {
 	}
 
 	if len(m.Answer) != 0 {
-		w.WriteMsg(m)
+		res := w.WriteMsg(m)
+		if res != nil {
+			logger.Errorf("Unable to write response: '%s' ", res)
+		}
+
 	} else {
 		// We didn't find a record corresponding to the query,
 		// try forwarding
@@ -455,7 +496,7 @@ func (s *DNSServer) queryServices(query string) chan *Service {
 }
 
 // Checks for a partial match for container SHA and outputs it if found.
-func (s *DNSServer) getExpandedID(in string) (out string) {
+func (s *DNSServer) getExpandedID(in string) (out string, err error) {
 	out = in
 
 	// Hard to make a judgement on small image names.
@@ -463,13 +504,18 @@ func (s *DNSServer) getExpandedID(in string) (out string) {
 		return
 	}
 
-	if isHex, _ := regexp.MatchString("^[0-9a-f]+$", in); !isHex {
+	re, err := regexp.Compile("^[0-9a-f]+$");
+	if err != nil {
+		return "", err
+	}
+
+	if isHex := re.MatchString(in); !isHex {
 		return
 	}
 
 	for id := range s.services {
 		if len(id) == 64 {
-			if isHex, _ := regexp.MatchString("^[0-9a-f]+$", id); isHex {
+			if isHex := re.MatchString(id); isHex {
 				if strings.HasPrefix(id, in) {
 					out = id
 					return

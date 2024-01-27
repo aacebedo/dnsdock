@@ -24,7 +24,7 @@ func TestServiceRequests(t *testing.T) {
 	config.HttpAddr = TestAddr
 
 	server := NewHTTPServer(config, NewDNSServer(config))
-	go server.Start()
+	go server.Start() //nolint:errcheck
 
 	// Allow some time for server to start
 	time.Sleep(250 * time.Millisecond)

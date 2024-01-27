@@ -11,6 +11,12 @@ package core
 import (
 	"crypto/tls"
 	"errors"
+	"fmt"
+	"net"
+	"regexp"
+	"strconv"
+	"strings"
+
 	"github.com/aacebedo/dnsdock/internal/servers"
 	"github.com/aacebedo/dnsdock/internal/utils"
 	"github.com/docker/engine-api/client"
@@ -18,10 +24,6 @@ import (
 	eventtypes "github.com/docker/engine-api/types/events"
 	"github.com/vdemeester/docker-events"
 	"golang.org/x/net/context"
-	"net"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 // DockerManager is the entrypoint to the docker daemon
@@ -45,7 +47,7 @@ func NewDockerManager(c *utils.Config, list servers.ServiceListProvider, tlsConf
 }
 
 // Start starts the DockerManager
-func (d *DockerManager) Start() error {
+func (d *DockerManager) Start() (err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	d.cancel = cancel
 	startHandler := func(m eventtypes.Message) {
@@ -54,14 +56,20 @@ func (d *DockerManager) Start() error {
 		if err != nil {
 			logger.Errorf("%s", err)
 		} else {
-			d.list.AddService(m.ID, *service)
+			err = d.list.AddService(m.ID, *service)
+			if err != nil {
+				logger.Errorf("Error adding service: %s", err)
+			}
 		}
 	}
 
 	stopHandler := func(m eventtypes.Message) {
 		logger.Debugf("Stopped container '%s'", m.ID)
 		if !d.config.All {
-			d.list.RemoveService(m.ID)
+			err = d.list.RemoveService(m.ID)
+			if err != nil {
+				logger.Errorf("%s", err)
+			}
 		} else {
 			logger.Debugf("Stopped container '%s' not removed as --all argument is true", m.ID)
 		}
@@ -72,12 +80,18 @@ func (d *DockerManager) Start() error {
 		name, ok2 := m.Actor.Attributes["oldName"]
 		if ok && ok2 {
 			logger.Debugf("Renamed container '%s' into '%s'", oldName, name)
-			d.list.RemoveService(oldName)
+			err = d.list.RemoveService(oldName)
+			if err != nil {
+				logger.Errorf("%s", err)
+			}
 			service, err := d.getService(m.ID)
 			if err != nil {
 				logger.Errorf("%s", err)
 			} else {
-				d.list.AddService(m.ID, *service)
+				res := d.list.AddService(m.ID, *service)
+				if res != nil {
+					logger.Errorf("Error adding service: %s", res)
+				}
 			}
 		}
 	}
@@ -85,7 +99,10 @@ func (d *DockerManager) Start() error {
 	destroyHandler := func(m eventtypes.Message) {
 		logger.Debugf("Destroy container '%s'", m.ID)
 		if d.config.All {
-			d.list.RemoveService(m.ID)
+			err := d.list.RemoveService(m.ID)
+			if err != nil {
+				logger.Errorf("%s", err)
+			}
 		}
 	}
 
@@ -110,7 +127,10 @@ func (d *DockerManager) Start() error {
 			logger.Errorf("%s", err)
 			continue
 		}
-		d.list.AddService(container.ID, *service)
+		err = d.list.AddService(container.ID, *service)
+		if err != nil {
+			return fmt.Errorf("Error adding service: %s", err)
+		}
 	}
 
 	return nil

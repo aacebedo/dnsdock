@@ -22,7 +22,6 @@ var GitSummary string
 var logger = logging.MustGetLogger("dnsdock.main")
 
 func main() {
-
 	var cmdLine = core.NewCommandLine(GitSummary)
 	config, err := cmdLine.ParseParameters(os.Args[1:])
 	if err != nil {
