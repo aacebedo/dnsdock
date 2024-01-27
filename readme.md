@@ -33,7 +33,7 @@ if the crashed container is restarted.
 
 - No support for Javascript plugins.
 
-- There's a slight difference in a way image names are extracted from a
+- There’s a slight difference in a way image names are extracted from a
   container. Skydock uses the last tag set on image while dnsdock uses the
 specific tag that was used when the container was created. This means that if a
 new version of an image comes out and untags the image that your container
@@ -41,27 +41,24 @@ still uses, the DNS requests for this old container still work.
 
 #### Build
 
-##### Building without docker:
+There are two ways to build the tool
 
-Install a golang development environment on your host and type the following commands:
+##### Building with devbox:
+
+Install [devbox](https://www.jetpack.io/devbox) on your host and execute the following commands:
 ```
-export GOPATH=/tmp/go
-export PATH=${PATH}:${GOPATH}/bin
-go get -v github.com/tools/godep
-go get -d -v https://github.com/aacebedo/dnsdock
-cd ${GOPATH}/src/github.com/aacebedo/dnsdock
-godep restore
-cd ${GOPATH}/src/github.com/aacebedo/dnsdock/src
-go build -o ${GOPATH}/bin/dnsdock
+$> devbox run test
+$> devbox run --env GOARCH=[amd64|arm] build
 ```
 
-##### Building with docker:
+##### Building using a devcontainer:
 
-To build with docker you need [rocker](https://github.com/grammarly/rocker). Check the
-website to install it and type the following commands:
+Install [VSCode devcontainer
+extension](https://code.visualstudio.com/docs/devcontainers/containers)
+ or [devpod](https://www.devpod.io) and execute the following commands:
 ```
-git clone https://github.com/aacebedo/dnsdock <clone_directory_path>
-rocker build -var ARCH=[amd64|arm] -var OUTPUT_DIR=<outputdir> <clone_directory_path>
+$> go get ./...
+$> mkdir -p build && GOARCH=[amd64|arm] go build -o build/dnsdock ./cmd/dnsdock
 ```
 
 #### Usage
@@ -148,7 +145,7 @@ Additional configuration options to dnsdock command:
 --tlscert="$HOME/.docker/cert.pem": Path to client certificate
 --tlskey="$HOME/.docker/key.pem": Path to client certificate private key
 --all: Process all container even if they are stopped
---forcettl: Change TTL value of responses coming from remote servers 
+--forcettl: Change TTL value of responses coming from remote servers
 ```
 
 If you also want to let the host machine discover the containers add `nameserver 172.17.0.1` to your `/etc/resolv.conf`.
@@ -156,14 +153,14 @@ If you also want to let the host machine discover the containers add `nameserver
 
 #### SELinux and Fedora / RHEL / CentOS
 
-Mounting docker daemon's unix socket may not work with default configuration on
+Mounting docker daemon’s unix socket may not work with default configuration on
 these platforms. Please use
 [selinux-dockersock](https://github.com/dpw/selinux-dockersock) to fix this.
 More information in [#11](https://github.com/aacebedo/dnsdock/issues/11).
 
 #### TLS Authentication
 
-Instead of connecting to the Docker daemon's UNIX socket, you may prefer to
+Instead of connecting to the Docker daemon’s UNIX socket, you may prefer to
 connect via a TLS-protected TCP socket (for example, if you are running Swarm).
 The `-tlsverify` option enables TLS, and the three additional options
 (`-tlscacert`, `-tlscert` and `-tlskey`) must also be specified. Alternatively,
@@ -234,7 +231,7 @@ docker run -e DNSDOCK_ALIAS=db.docker,sql.docker -e DNSDOCK_TTL=10 \
 
 #### Overrides with docker labels
 
-If you wish to fine tune the DNS response addresses you can define specific labels during 
+If you wish to fine tune the DNS response addresses you can define specific labels during
 container creation. This overrides the default matching scheme from container and image name.
 
 Supported labels are `com.dnsdock.ignore`, `com.dnsdock.alias`, `com.dnsdock.name`, `com.dnsdock.tags`, `com.dnsdock.image`,
@@ -263,7 +260,7 @@ docker run -l com.dnsdock.tags=master -l com.dnsdock.name=mysql -l com.dnsdock.r
 If you want dnsdock to skip processing a specific container set its
 `com.dnsdock.ignore` label.
 
-You can force the value of the IP address returned in the DNS record with the 
+You can force the value of the IP address returned in the DNS record with the
 `com.dnsdock.ip_addr` label. This can be useful if you have a reverse proxy such as traefik in a container with mapped port and you want to redirect your clients to the front server instead of an internal docker container ip address.
 
 #### OSX Usage
