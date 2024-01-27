@@ -1,0 +1,15 @@
+name: PR workflow
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  commit_checks:
+    name: Commit checks
+    uses: ./.github/workflows/commit_checks.yml
+    with:
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      head_sha: ${{ github.event.pull_request.head.sha }}
+

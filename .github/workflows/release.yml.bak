@@ -1,0 +1,25 @@
+name: Release workflow
+
+on:
+  push:
+    tags:
+    - "v*.*.*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Create bump and changelog
+      uses: commitizen-tools/commitizen-action@master
+      with:
+        github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        changelog_increment_filename: CHANGELOG.md
+
+    - name: Create release
+      uses: softprops/action-gh-release@v1
+      with:
+        body_path: "CHANGELOG.md"
+        tag_name: ${{ env.REVISION }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
