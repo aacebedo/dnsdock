@@ -33,7 +33,6 @@ archives:
 
 release:
   prerelease: auto
-  draft: true
   github:
     owner: aacebedo
     name: dnsdock
@@ -44,17 +43,27 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+      - "^bump:"
 
 dockers:
   - id: amd64 image
     goos: linux
-
     goarch: amd64
-
+    use: buildx
     image_templates:
-      - aacebedo/dnsdock:latest
-      - aacebedo/dnsdock:{{ .Tag }}
+      - aacebedo/dnsdock:latest-amd64
+      - aacebedo/dnsdock:{{ .Tag }}-amd64
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/amd64"
 
-    # hooks:
-    #   pre: docker login -u $DOCKER_USER -p $DOCKER_PASS
-    #   post: docker push aacebedo/dnsdock:latest && docker push aacebedo/dnsdock:{{ .Tag }}
+  - id: arm image
+    goos: linux
+    goarch: arm
+    use: buildx
+    image_templates:
+      - aacebedo/dnsdock:latest-arm
+      - aacebedo/dnsdock:{{ .Tag }}-arm
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/arm"

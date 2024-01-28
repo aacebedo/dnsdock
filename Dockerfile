@@ -1,4 +1,4 @@
 FROM scratch
 
 COPY dnsdock /
-ENTRYPOINT ["dnsdock"]
+ENTRYPOINT ["/dnsdock"]
