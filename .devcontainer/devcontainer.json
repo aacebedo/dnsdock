@@ -1,0 +1,31 @@
+{
+  "name": "Dnsdock dev container",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.shell.linux": "/bin/zsh",
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "zsh",
+            "icon": "terminal-bash"
+          }
+        }
+      },
+      "extensions": [
+        "ms-azuretools.vscode-docker",
+        "premparihar.gotestexplorer",
+        "golang.go",
+        "github.vscode-github-actions",
+        "KnisterPeter.vscode-commitizen",
+        "eamodio.gitlens",
+        "mhutchie.git-graph",
+        "yzhang.markdown-all-in-one",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}

@@ -1,0 +1,64 @@
+name: Commit Checks
+
+on:
+  workflow_call:
+    inputs:
+      base_sha:
+        description: 'Base SHA to check from'
+        required: true
+        type: string
+      head_sha:
+        description: 'Head SHA to check until'
+        required: true
+        type: string
+
+jobs:
+  commit_messages_checks:
+    name: Commit messages checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install devbox
+        uses: jetpack-io/devbox-install-action@v0.7.0
+        with:
+          devbox-version: 0.8.5
+          enable-cache: 'true'
+
+      - name: Check commit messages
+        run: devbox run -- cz check --rev-range ${{ inputs.base_sha }}..${{ inputs.head_sha }}
+
+  code_lint_checks:
+    name: Code lint checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install devbox
+        uses: jetpack-io/devbox-install-action@v0.7.0
+        with:
+          devbox-version: 0.8.5
+          enable-cache: 'true'
+
+      - name: Lint code
+        run:  devbox run lint
+
+  test_checks:
+    name: Test checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install devbox
+        uses: jetpack-io/devbox-install-action@v0.7.0
+        with:
+          devbox-version: 0.8.5
+          enable-cache: 'true'
+
+      - name: Run tests
+        run:  devbox run test

@@ -1,0 +1,30 @@
+name: Release workflow
+
+on:
+  push:
+    branches-ignore:
+      - '**'
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  create_release:
+    name: Create release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install devbox
+        uses: jetpack-io/devbox-install-action@v0.7.0
+        with:
+          devbox-version: 0.8.5
+          enable-cache: 'true'
+
+      - name: Publish release
+        run: devbox run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

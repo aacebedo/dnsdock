@@ -10,7 +10,7 @@ package servers
 
 import (
 	"encoding/json"
-	"github.com/aacebedo/dnsdock/src/utils"
+	"github.com/aacebedo/dnsdock/internal/utils"
 	"github.com/gorilla/mux"
 	"net/http"
 )
@@ -111,7 +111,11 @@ func (s *HTTPServer) addService(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	s.list.AddService(id, *service)
+	err := s.list.AddService(id, *service)
+  if err != nil {
+    http.Error(w, err.Error(), http.StatusInternalServerError)
+    return
+  }
 }
 
 func (s *HTTPServer) removeService(w http.ResponseWriter, req *http.Request) {
@@ -177,8 +181,11 @@ func (s *HTTPServer) updateService(w http.ResponseWriter, req *http.Request) {
 
 	// todo: this probably needs to be moved. consider stop event in the
 	// middle of sending PATCH. container would not be removed.
-	s.list.AddService(id, service)
-
+	err = s.list.AddService(id, service)
+  if err != nil {
+    http.Error(w, err.Error(), http.StatusInternalServerError)
+    return
+  }
 }
 
 func (s *HTTPServer) setTTL(w http.ResponseWriter, req *http.Request) {

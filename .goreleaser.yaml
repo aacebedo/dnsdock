@@ -1,0 +1,60 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+
+# The lines below are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/need to use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 1
+
+before:
+  hooks:
+    - devbox run test
+    - devbox run lint
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    main: ./cmd/dnsdock
+    goarch:
+      - amd64
+      - arm
+    goos:
+      - linux
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{ .Version }}_
+      {{ .Os }}_
+      {{ .Arch }}{{ if eq .Arch "arm" }}v{{ .Arm }}l{{ end }}
+
+release:
+  prerelease: auto
+  draft: true
+  github:
+    owner: aacebedo
+    name: dnsdock
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+dockers:
+  - id: amd64 image
+    goos: linux
+
+    goarch: amd64
+
+    image_templates:
+      - aacebedo/dnsdock:latest
+      - aacebedo/dnsdock:{{ .Tag }}
+
+    # hooks:
+    #   pre: docker login -u $DOCKER_USER -p $DOCKER_PASS
+    #   post: docker push aacebedo/dnsdock:latest && docker push aacebedo/dnsdock:{{ .Tag }}

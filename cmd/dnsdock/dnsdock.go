@@ -11,27 +11,25 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/aacebedo/dnsdock/src/core"
-	"github.com/aacebedo/dnsdock/src/servers"
-	"github.com/aacebedo/dnsdock/src/utils"
+	"github.com/aacebedo/dnsdock/internal/core"
+	"github.com/aacebedo/dnsdock/internal/servers"
+	"github.com/aacebedo/dnsdock/internal/utils"
 	"github.com/op/go-logging"
-	"io/ioutil"
 	"os"
 )
 // GitSummary contains the version number
-var GitSummary string 
+var GitSummary string
 var logger = logging.MustGetLogger("dnsdock.main")
 
 func main() {
-
 	var cmdLine = core.NewCommandLine(GitSummary)
 	config, err := cmdLine.ParseParameters(os.Args[1:])
 	if err != nil {
 		logger.Fatalf(err.Error())
 	}
 	verbosity := 0
-	if config.Quiet == false {
-		if config.Verbose == false {
+	if !config.Quiet {
+		if !config.Verbose {
 			verbosity = 1
 		} else {
 			verbosity = 2
@@ -54,7 +52,7 @@ func main() {
 			MinVersion:   tls.VersionTLS12,
 			Certificates: []tls.Certificate{clientCert},
 		}
-		pemData, err := ioutil.ReadFile(config.TlsCaCert)
+		pemData, err := os.ReadFile(config.TlsCaCert)
 		if err == nil {
 			rootCert := x509.NewCertPool()
 			rootCert.AppendCertsFromPEM(pemData)

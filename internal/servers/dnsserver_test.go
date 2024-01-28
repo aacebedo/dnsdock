@@ -9,7 +9,7 @@
 package servers
 
 import (
-	"github.com/aacebedo/dnsdock/src/utils"
+	"github.com/aacebedo/dnsdock/internal/utils"
 	"github.com/miekg/dns"
 	"net"
 	"strings"
@@ -24,15 +24,27 @@ func TestDNSResponse(t *testing.T) {
 	config.DnsAddr = TestAddr
 
 	server := NewDNSServer(config)
-	go server.Start()
+	go server.Start() //nolint:errcheck
 
 	// Allow some time for server to start
 	time.Sleep(250 * time.Millisecond)
 
-	server.AddService("foo", Service{Name: "foo", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
-	server.AddService("baz", Service{Name: "baz", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}, TTL: -1})
-	server.AddService("biz", Service{Name: "hey", Image: "", IPs: []net.IP{net.ParseIP("127.0.0.4")}})
-	server.AddService("joe", Service{Name: "joe", Image: "", IPs: []net.IP{net.ParseIP("127.0.0.5")}, Aliases: []string{"lala.docker", "super-alias", "alias.domain"}})
+	res := server.AddService("foo", Service{Name: "foo", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+  if res != nil {
+    t.Error("Error adding service", res)
+  }
+	res = server.AddService("baz", Service{Name: "baz", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}, TTL: -1})
+  if res != nil {
+    t.Error("Error adding service", res)
+  }
+	res = server.AddService("biz", Service{Name: "hey", Image: "", IPs: []net.IP{net.ParseIP("127.0.0.4")}})
+  if res != nil {
+    t.Error("Error adding service", res)
+  }
+	res = server.AddService("joe", Service{Name: "joe", Image: "", IPs: []net.IP{net.ParseIP("127.0.0.5")}, Aliases: []string{"lala.docker", "super-alias", "alias.domain"}})
+  if res != nil {
+    t.Error("Error adding service", res)
+  }
 
 	var inputs = []struct {
 		query    string
@@ -115,7 +127,10 @@ func TestServiceManagement(t *testing.T) {
 	}
 
 	A := Service{Name: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}}
-	list.AddService("foo", A)
+	res := list.AddService("foo", A)
+  if res != nil {
+    t.Error("Error adding service", res)
+  }
 
 	if len(list.GetAllServices()) != 1 {
 		t.Error("Service count should be 1.")
@@ -138,7 +153,10 @@ func TestServiceManagement(t *testing.T) {
 		t.Error("Request to boo should have failed")
 	}
 
-	list.AddService("boo", Service{Name: "boo", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+	res = list.AddService("boo", Service{Name: "boo", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+  if res != nil {
+    t.Error("Error adding service", res)
+  }
 
 	all := list.GetAllServices()
 
@@ -168,7 +186,10 @@ func TestServiceManagement(t *testing.T) {
 		t.Error("Item count after remove should be 1")
 	}
 
-	list.AddService("416261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f142bc0df", Service{Name: "mysql", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+	res = list.AddService("416261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f142bc0df", Service{Name: "mysql", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+  if res != nil {
+    t.Error("Error adding service", res)
+  }
 
 	if s1, _ = list.GetService("416261"); s1.Name != "mysql" {
 		t.Error("Container can't be found by prefix")
@@ -188,11 +209,22 @@ func TestServiceManagement(t *testing.T) {
 func TestDNSRequestMatch(t *testing.T) {
 	server := NewDNSServer(utils.NewConfig())
 
-	server.AddService("foo", Service{Name: "foo", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
-	server.AddService("baz", Service{Name: "baz", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
-	server.AddService("abc", Service{Name: "def", Image: "ghi", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
-	server.AddService("qux", Service{Name: "qux", Image: "", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
-
+	res := server.AddService("foo", Service{Name: "foo", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+  if res != nil {
+    t.Error("Error adding service", res)
+  }
+	res = server.AddService("baz", Service{Name: "baz", Image: "bar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+	if res != nil {
+    t.Error("Error adding service", res)
+  }
+  res = server.AddService("abc", Service{Name: "def", Image: "ghi", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+	if res != nil {
+    t.Error("Error adding service", res)
+  }
+  res = server.AddService("qux", Service{Name: "qux", Image: "", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+  if res != nil {
+    t.Error("Error adding service", res)
+  }
 	inputs := []struct {
 		query, domain string
 		expected      int
@@ -222,7 +254,7 @@ func TestDNSRequestMatch(t *testing.T) {
 		t.Log(input.query, input.domain)
 
 		actual := 0
-		for _ = range server.queryServices(input.query) {
+		for range server.queryServices(input.query) {
 			actual++
 		}
 
@@ -235,10 +267,22 @@ func TestDNSRequestMatch(t *testing.T) {
 func TestDNSRequestMatchNamesWithDots(t *testing.T) {
 	server := NewDNSServer(utils.NewConfig())
 
-	server.AddService("boo", Service{Name: "foo.boo", Image: "bar.zar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
-	server.AddService("baz", Service{Name: "baz", Image: "bar.zar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
-	server.AddService("abc", Service{Name: "bar", Image: "zar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
-	server.AddService("qux", Service{Name: "qux.quu", Image: "", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+	res := server.AddService("boo", Service{Name: "foo.boo", Image: "bar.zar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+  if res != nil {
+    t.Error("Error adding service", res)
+  }
+	res = server.AddService("baz", Service{Name: "baz", Image: "bar.zar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+	if res != nil {
+    t.Error("Error adding service", res)
+  }
+  res = server.AddService("abc", Service{Name: "bar", Image: "zar", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+	if res != nil {
+    t.Error("Error adding service", res)
+  }
+  res = server.AddService("qux", Service{Name: "qux.quu", Image: "", IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+  if res != nil {
+    t.Error("Error adding service", res)
+  }
 
 	inputs := []struct {
 		query, domain string
@@ -265,7 +309,7 @@ func TestDNSRequestMatchNamesWithDots(t *testing.T) {
 
 		t.Log(input.query, input.domain)
 		actual := 0
-		for _ = range server.queryServices(input.query) {
+		for range server.queryServices(input.query) {
 			actual++
 		}
 
@@ -275,12 +319,21 @@ func TestDNSRequestMatchNamesWithDots(t *testing.T) {
 	}
 }
 
-func TestgetExpandedID(t *testing.T) {
+func TestGetExpandedID(t *testing.T) {
 	server := NewDNSServer(utils.NewConfig())
 
-	server.AddService("416261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f142bc0df", Service{})
-	server.AddService("316261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f14nothex", Service{})
-	server.AddService("abcdefabcdef", Service{})
+	res := server.AddService("416261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f142bc0df", Service{IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+  if res != nil {
+    t.Error("Error adding service", res)
+  }
+	res = server.AddService("316261e74515b7dd1dbd55f35e8625b063044f6ddf74907269e07e9f14nothex", Service{IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+	if res != nil {
+    t.Error("Error adding service", Service{IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+  }
+  res = server.AddService("abcdefabcdef", Service{IPs: []net.IP{net.ParseIP("127.0.0.1")}})
+  if res != nil {
+    t.Error("Error adding service", res)
+  }
 
 	inputs := map[string]string{
 		"416":          "416",
@@ -292,7 +345,8 @@ func TestgetExpandedID(t *testing.T) {
 	}
 
 	for input, expected := range inputs {
-		if actual := server.getExpandedID(input); actual != expected {
+    res, _ := server.getExpandedID(input);
+		if actual := res; actual != expected {
 			t.Error(input, "Expected:", expected, "Got:", actual)
 		}
 	}

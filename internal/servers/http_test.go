@@ -9,8 +9,8 @@
 package servers
 
 import (
-	"github.com/aacebedo/dnsdock/src/utils"
-	"io/ioutil"
+	"github.com/aacebedo/dnsdock/internal/utils"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -24,7 +24,7 @@ func TestServiceRequests(t *testing.T) {
 	config.HttpAddr = TestAddr
 
 	server := NewHTTPServer(config, NewDNSServer(config))
-	go server.Start()
+	go server.Start() //nolint:errcheck
 
 	// Allow some time for server to start
 	time.Sleep(250 * time.Millisecond)
@@ -66,7 +66,7 @@ func TestServiceRequests(t *testing.T) {
 			continue
 		}
 
-		actual, err := ioutil.ReadAll(resp.Body)
+		actual, err := io.ReadAll(resp.Body)
 		if err != nil {
 			t.Error(err)
 		}

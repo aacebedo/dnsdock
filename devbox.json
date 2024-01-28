@@ -1,0 +1,39 @@
+{
+  "packages": [
+    "go@1.21.5",
+    "gopls@0.14.2",
+    "commitizen@3.13.0",
+    "go-tools@2023.1.6",
+    "golangci-lint@1.55.2",
+    "delve@1.22.0",
+    "hadolint@2.12.0",
+    "pre-commit@3.6.0",
+    "goreleaser@1.23.0"
+  ],
+  "env": {
+    "NIX_HARDENING_ENABLE": ""
+  },
+  "shell": {
+    "init_hook": [
+      "export GOPATH=`pwd`/.go",
+      "export PATH=`pwd`/.go/bin:$PATH",
+      "export CGO_ENABLED=0"
+    ],
+    "scripts": {
+      "build": [
+        "mkdir -p build && go build -o build/dnsdock${GOARCH:+.}${GOARCH} ./cmd/dnsdock"
+      ],
+      "test": [
+        "go test ./..."
+      ],
+      "lint": [
+        "go mod tidy",
+        "go vet ./... ",
+        "golangci-lint run ./..."
+      ],
+      "release": [
+        "goreleaser --clean"
+      ]
+    }
+  }
+}

@@ -1,0 +1,15 @@
+name: main branch workflow
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  commit_checks:
+    name: Commit checks
+    uses: ./.github/workflows/commit_checks.yml
+    with:
+      base_sha: ${{ github.event.before }}
+      head_sha: ${{ github.event.after }}
+

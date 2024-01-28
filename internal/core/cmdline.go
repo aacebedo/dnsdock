@@ -10,7 +10,7 @@ package core
 
 import (
 	"fmt"
-	"github.com/aacebedo/dnsdock/src/utils"
+	"github.com/aacebedo/dnsdock/internal/utils"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"strconv"
 )

@@ -10,7 +10,7 @@ package utils
 
 import (
 	"github.com/op/go-logging"
-	"io/ioutil"
+	"io"
 	"os"
 )
 
@@ -22,7 +22,7 @@ func InitLoggers(verbosity int) (err error) {
 
 	switch {
 	case verbosity == 0:
-		backend = logging.NewLogBackend(ioutil.Discard, "", 0)
+		backend = logging.NewLogBackend(io.Discard, "", 0)
 	case verbosity >= 1:
 		backend = logging.NewLogBackend(os.Stdout, "", 0)
 	}
