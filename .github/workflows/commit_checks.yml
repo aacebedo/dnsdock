@@ -26,8 +26,7 @@ jobs:
         uses: jetpack-io/devbox-install-action@v0.7.0
         with:
           devbox-version: 0.8.5
-          enable-cache: 'true'
-
+ 
       - name: Check commit messages
         run: devbox run -- cz check --rev-range ${{ inputs.base_sha }}..${{ inputs.head_sha }}
 
@@ -42,7 +41,6 @@ jobs:
         uses: jetpack-io/devbox-install-action@v0.7.0
         with:
           devbox-version: 0.8.5
-          enable-cache: 'true'
 
       - name: Lint code
         run:  devbox run lint
@@ -58,7 +56,6 @@ jobs:
         uses: jetpack-io/devbox-install-action@v0.7.0
         with:
           devbox-version: 0.8.5
-          enable-cache: 'true'
 
       - name: Run tests
         run:  devbox run test
