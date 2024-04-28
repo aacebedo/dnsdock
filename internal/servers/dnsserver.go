@@ -11,13 +11,14 @@ package servers
 import (
 	"errors"
 	"fmt"
-	"github.com/aacebedo/dnsdock/internal/utils"
-	"github.com/miekg/dns"
 	"net"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/aacebedo/dnsdock/internal/utils"
+	"github.com/miekg/dns"
 )
 
 // Service represents a container and an attached DNS record
@@ -27,19 +28,23 @@ type Service struct {
 	IPs     []net.IP
 	TTL     int
 	Aliases []string
+
+	// Provider tracks the creator of a service
+	Provider string `json:"-"`
 }
 
 // NewService creates a new service
-func NewService() (s *Service) {
-	s = &Service{TTL: -1}
+func NewService(provider string) (s *Service) {
+	s = &Service{TTL: -1, Provider: provider}
 	return
 }
 func (s Service) String() string {
-	return fmt.Sprintf(` Name:    %s
-                       Aliases: %s
-                       IPs:     %s
-                       TTL:     %d
-        `, s.Name, s.Aliases, s.IPs, s.TTL)
+	return fmt.Sprintf(` Name:     %s
+                       Aliases:  %s
+                       IPs:      %s
+                       TTL:      %d
+                       Provider: %s
+        `, s.Name, s.Aliases, s.IPs, s.TTL, s.Provider)
 }
 
 // ServiceListProvider represents the entrypoint to get containers
@@ -504,7 +509,7 @@ func (s *DNSServer) getExpandedID(in string) (out string, err error) {
 		return
 	}
 
-	re, err := regexp.Compile("^[0-9a-f]+$");
+	re, err := regexp.Compile("^[0-9a-f]+$")
 	if err != nil {
 		return "", err
 	}
@@ -554,9 +559,10 @@ func (s *DNSServer) createSOA() []dns.RR {
 // namely, the query may be longer than "name" and still be a valid prefix
 // query for "name".
 // Examples:
-//   foo.bar.baz.qux is a valid query for bar.baz.qux (longer prefix is okay)
-//   foo.*.baz.qux   is a valid query for bar.baz.qux (wildcards okay)
-//   *.baz.qux       is a valid query for baz.baz.qux (wildcard prefix okay)
+//
+//	foo.bar.baz.qux is a valid query for bar.baz.qux (longer prefix is okay)
+//	foo.*.baz.qux   is a valid query for bar.baz.qux (wildcards okay)
+//	*.baz.qux       is a valid query for baz.baz.qux (wildcard prefix okay)
 func isPrefixQuery(query, name []string) bool {
 	for i, j := len(query)-1, len(name)-1; i >= 0 && j >= 0; i, j = i-1, j-1 {
 		if query[i] != name[j] && query[i] != "*" {

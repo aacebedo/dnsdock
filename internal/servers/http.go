@@ -10,10 +10,14 @@ package servers
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"github.com/aacebedo/dnsdock/internal/utils"
 	"github.com/gorilla/mux"
-	"net/http"
 )
+
+// HTTPProvider is the name of the provider used for services added by the HTTP server
+const HTTPProvider = "http"
 
 // HTTPServer represents the http endpoint
 type HTTPServer struct {
@@ -89,7 +93,7 @@ func (s *HTTPServer) addService(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	service := NewService()
+	service := NewService(HTTPProvider)
 	if err := json.NewDecoder(req.Body).Decode(&service); err != nil {
 		logger.Errorf("JSON decoding error: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -112,10 +116,10 @@ func (s *HTTPServer) addService(w http.ResponseWriter, req *http.Request) {
 	}
 
 	err := s.list.AddService(id, *service)
-  if err != nil {
-    http.Error(w, err.Error(), http.StatusInternalServerError)
-    return
-  }
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *HTTPServer) removeService(w http.ResponseWriter, req *http.Request) {
@@ -182,10 +186,10 @@ func (s *HTTPServer) updateService(w http.ResponseWriter, req *http.Request) {
 	// todo: this probably needs to be moved. consider stop event in the
 	// middle of sending PATCH. container would not be removed.
 	err = s.list.AddService(id, service)
-  if err != nil {
-    http.Error(w, err.Error(), http.StatusInternalServerError)
-    return
-  }
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *HTTPServer) setTTL(w http.ResponseWriter, req *http.Request) {
