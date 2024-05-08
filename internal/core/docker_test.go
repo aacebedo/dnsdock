@@ -9,9 +9,10 @@
 package core
 
 import (
-	"github.com/aacebedo/dnsdock/internal/servers"
 	"reflect"
 	"testing"
+
+	"github.com/aacebedo/dnsdock/internal/servers"
 )
 
 func TestGetImageName(t *testing.T) {
@@ -78,7 +79,7 @@ func TestSplitEnv(t *testing.T) {
 
 func TestOverrideFromEnv(t *testing.T) {
 	getService := func() *servers.Service {
-		service := servers.NewService()
+		service := servers.NewService(DockerProvider)
 		service.Name = "myfoo"
 		service.Image = "mybar"
 		return service
