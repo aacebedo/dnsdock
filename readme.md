@@ -1,5 +1,5 @@
-[![Build Status](https://secure.travis-ci.org/aacebedo/dnsdock.png)](http://travis-ci.org/aacebedo/dnsdock)
 
+![Build Status](https://github.com/aacebedo/dnsdock/actions/workflows/main.yml/badge.svg)
 
 ## dnsdock
 
@@ -103,6 +103,69 @@ redis1.redis.docker.		0	IN	A	172.17.0.2
 redis1.*.docker.		0	IN	A	172.17.0.2
 ```
 
+##### OSX Usage
+
+Original tutorial: http://www.asbjornenge.com/wwc/vagrant_skydocking.html
+
+If you use docker on OSX via Vagrant you can do this to make your containers
+discoverable from your main machine.
+
+In your Vagrantfile add the following to let your virtual machine accept
+packets for other IPs:
+
+```ruby
+config.vm.provider :virtualbox do |vb|
+  vb.customize ["modifyvm", :id, "--nicpromisc2", "allow-all"]
+end
+```
+
+Then route traffic that matches you containers to your virtual machine internal IP:
+
+```
+sudo route -n add -net 172.17.0.0 <VAGRANT_MACHINE_IP>
+```
+
+Finally, to make OSX use dnsdock for requests that match your domain suffix
+create a file with your domain ending under `/etc/resolver` (for example
+`/etc/resolver/myprojectname.docker`) and set its contents to `nameserver
+172.17.0.1`.
+
+##### coreos-vagrant usage
+
+You can autostart the dnsdock service in the `user-data` file of coreos-vagrant.
+Everytime you `vagrant up` this CoreOs vagrant instance the dnsdock service
+will be running and start discovering your other services.
+
+Add the following snippet under the `units` part:
+
+```
+- name: dnsdock.service
+      enable: true
+      command: start
+      content: |
+        [Unit]
+        Description=dnsdock
+        After=docker.service
+        Requires=docker.service
+
+        [Service]
+        EnvironmentFile=/etc/environment
+        ExecStartPre=/bin/sh -c '/usr/bin/docker rm -f dnsdock || ls > /dev/null'
+        ExecStartPre=/bin/sh -c '/usr/bin/docker pull aacebedo/dnsdock'
+        ExecStart=/usr/bin/docker run -v /var/run/docker.sock:/var/run/docker.sock --name dnsdock -p ${COREOS_PRIVATE_IPV4}:53:53/udp aacebedo/dnsdock
+        ExecStop=/bin/sh -c '/usr/bin/docker stop dnsdock  || ls > /dev/null'
+```
+
+
+##### Container images usage
+
+DNSDock is also available as [official docker images](https://hub.docker.com/r/aacebedo/dnsdock).
+There are several images for different processor architectures:
+- amd64
+- arm
+
+Simply add the architecture to the requested tag.
+
 #### Setup
 
 DNS listening port needs to be bound to the *docker0* inferface so that its
@@ -151,14 +214,13 @@ Additional configuration options to dnsdock command:
 If you also want to let the host machine discover the containers add `nameserver 172.17.0.1` to your `/etc/resolv.conf`.
 
 
-#### SELinux and Fedora / RHEL / CentOS
+##### SELinux and Fedora / RHEL / CentOS
 
 Mounting docker daemon’s unix socket may not work with default configuration on
-these platforms. Please use
-[selinux-dockersock](https://github.com/dpw/selinux-dockersock) to fix this.
+these platforms. Please use [selin-dockersock](https://github.com/dpw/selinux-dockersock) to fix this.
 More information in [#11](https://github.com/aacebedo/dnsdock/issues/11).
 
-#### TLS Authentication
+##### TLS Authentication
 
 Instead of connecting to the Docker daemon’s UNIX socket, you may prefer to
 connect via a TLS-protected TCP socket (for example, if you are running Swarm).
@@ -183,7 +245,7 @@ Use a volume (`-v /path/to/certs:/certs`) to give the container access to the
 certificate files, or build the certificates into the image if you have access
 to a secure private image registry.
 
-#### HTTP Server
+##### HTTP Server
 
 For easy overview and manual control dnsdock also includes HTTP server that
 lets you configure the server using a JSON API.
@@ -209,7 +271,7 @@ curl http://dnsdock.docker/set/ttl -X PUT --data-ascii '10'
 ```
 
 
-#### Overrides from ENV metadata (DEPRECATED WILL BE REMOVED IN NEXT RELEASE)
+##### Overrides from ENV metadata (DEPRECATED)
 
 If you wish to fine tune the DNS response addresses you can define specific
 environment variables during container startup. This overrides the default
@@ -229,7 +291,7 @@ docker run -e DNSDOCK_ALIAS=db.docker,sql.docker -e DNSDOCK_TTL=10 \
 # matches db.docker and sql.docker
 ```
 
-#### Overrides with docker labels
+##### Overrides with docker labels
 
 If you wish to fine tune the DNS response addresses you can define specific labels during
 container creation. This overrides the default matching scheme from container and image name.
@@ -262,59 +324,6 @@ If you want dnsdock to skip processing a specific container set its
 
 You can force the value of the IP address returned in the DNS record with the
 `com.dnsdock.ip_addr` label. This can be useful if you have a reverse proxy such as traefik in a container with mapped port and you want to redirect your clients to the front server instead of an internal docker container ip address.
-
-#### OSX Usage
-
-Original tutorial: http://www.asbjornenge.com/wwc/vagrant_skydocking.html
-
-If you use docker on OSX via Vagrant you can do this to make your containers
-discoverable from your main machine.
-
-In your Vagrantfile add the following to let your virtual machine accept
-packets for other IPs:
-
-```ruby
-config.vm.provider :virtualbox do |vb|
-  vb.customize ["modifyvm", :id, "--nicpromisc2", "allow-all"]
-end
-```
-
-Then route traffic that matches you containers to your virtual machine internal IP:
-
-```
-sudo route -n add -net 172.17.0.0 <VAGRANT_MACHINE_IP>
-```
-
-Finally, to make OSX use dnsdock for requests that match your domain suffix
-create a file with your domain ending under `/etc/resolver` (for example
-`/etc/resolver/myprojectname.docker`) and set its contents to `nameserver
-172.17.0.1`.
-
-#### coreos-vagrant usage
-
-You can autostart the dnsdock service in the `user-data` file of coreos-vagrant.
-Everytime you `vagrant up` this CoreOs vagrant instance the dnsdock service
-will be running and start discovering your other services.
-
-Add the following snippet under the `units` part:
-
-```
-- name: dnsdock.service
-      enable: true
-      command: start
-      content: |
-        [Unit]
-        Description=dnsdock
-        After=docker.service
-        Requires=docker.service
-
-        [Service]
-        EnvironmentFile=/etc/environment
-        ExecStartPre=/bin/sh -c '/usr/bin/docker rm -f dnsdock || ls > /dev/null'
-        ExecStartPre=/bin/sh -c '/usr/bin/docker pull aacebedo/dnsdock'
-        ExecStart=/usr/bin/docker run -v /var/run/docker.sock:/var/run/docker.sock --name dnsdock -p ${COREOS_PRIVATE_IPV4}:53:53/udp aacebedo/dnsdock
-        ExecStop=/bin/sh -c '/usr/bin/docker stop dnsdock  || ls > /dev/null'
-```
 
 
 ---
