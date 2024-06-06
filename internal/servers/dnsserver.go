@@ -30,7 +30,7 @@ type Service struct {
 	IPs           []net.IP
 	TTL           int
 	Aliases       []string
-	IgnoredByUser bool
+	IgnoredByUser bool `json:"-"`
 
 	// Provider tracks the creator of a service
 	Provider string `json:"-"`

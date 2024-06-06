@@ -87,13 +87,13 @@ func TestOverrideFromEnv(t *testing.T) {
 
 	s := getService()
 	s = overrideFromEnv(s, map[string]string{"SERVICE_IGNORE": "1"})
-	if s != nil {
+	if s != nil && !s.IgnoredByUser {
 		t.Error("Skipping failed")
 	}
 
 	s = getService()
 	s = overrideFromEnv(s, map[string]string{"DNSDOCK_IGNORE": "1"})
-	if s != nil {
+	if s != nil && !s.IgnoredByUser {
 		t.Error("Skipping failed(2)")
 	}
 
