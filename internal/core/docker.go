@@ -97,6 +97,11 @@ func (d *DockerManager) run(ctx context.Context) error {
 		if _, ok := services[id]; !ok && srv.Provider == DockerProvider {
 			err := d.list.RemoveService(id)
 			if err != nil {
+				// The service id(in this case, container id) may not register
+				// during 'AddService' stage because it's ignored by label/env setting.
+				if err == servers.ErrSvrsNotExist {
+					continue
+				}
 				return fmt.Errorf("error removing service: %w", err)
 			}
 		}
@@ -172,6 +177,11 @@ func (d *DockerManager) stopHandler(m events.Message) error {
 	if !d.config.All {
 		err := d.list.RemoveService(m.ID)
 		if err != nil {
+			// The service id(in this case, container id) may not register
+			// during 'AddService' stage because it's ignored by label/env setting.
+			if err == servers.ErrSvrsNotExist {
+				return nil
+			}
 			return fmt.Errorf("error removing service: %w", err)
 		}
 	} else {
@@ -184,6 +194,11 @@ func (d *DockerManager) renameHandler(m events.Message) error {
 	logger.Debugf("Renamed container '%s'", m.ID)
 	err := d.list.RemoveService(m.ID)
 	if err != nil {
+		// The service id(in this case, container id) may not register
+		// during 'AddService' stage because it's ignored by label/env setting.
+		if err == servers.ErrSvrsNotExist {
+			return nil
+		}
 		return fmt.Errorf("error removing service: %w", err)
 	}
 	service, err := d.getService(m.ID)
@@ -202,6 +217,11 @@ func (d *DockerManager) destroyHandler(m events.Message) error {
 	if d.config.All {
 		err := d.list.RemoveService(m.ID)
 		if err != nil {
+			// The service id(in this case, container id) may not register
+			// during 'AddService' stage because it's ignored by label/env setting.
+			if err == servers.ErrSvrsNotExist {
+				return nil
+			}
 			return fmt.Errorf("error removing service: %w", err)
 		}
 	}
@@ -211,6 +231,23 @@ func (d *DockerManager) destroyHandler(m events.Message) error {
 // Stop stops the DockerManager
 func (d *DockerManager) Stop() {
 	d.cancel()
+}
+
+func (d *DockerManager) getContainerIPbyId(id string) (res []net.IP, err error) {
+	desc, e := d.client.ContainerInspect(context.Background(), id)
+	if e != nil {
+		err = e
+		return
+
+	}
+
+	for _, val := range desc.NetworkSettings.Networks {
+		if ip := net.ParseIP(val.IPAddress); ip != nil {
+			res = append(res, ip)
+		}
+	}
+
+	return
 }
 
 func (d *DockerManager) getService(id string) (*servers.Service, error) {
@@ -232,6 +269,12 @@ func (d *DockerManager) getService(id string) (*servers.Service, error) {
 	switch len(desc.NetworkSettings.Networks) {
 	case 0:
 		logger.Warningf("Warning, no IP address found for container '%s' ", desc.Name)
+		if networkmode := desc.HostConfig.NetworkMode; networkmode.IsContainer() {
+			logger.Debugf("%s is linked to container %s", desc.Name, networkmode.ConnectedContainer())
+			ips, _ := d.getContainerIPbyId(networkmode.ConnectedContainer())
+			service.IPs = append(service.IPs, ips...)
+		}
+
 	default:
 		for _, value := range desc.NetworkSettings.Networks {
 			ip := net.ParseIP(value.IPAddress)
@@ -297,7 +340,7 @@ func overrideFromLabels(in *servers.Service, labels map[string]string) (out *ser
 	var region string
 	for k, v := range labels {
 		if k == "com.dnsdock.ignore" {
-			return nil
+			in.IgnoredByUser = true
 		}
 
 		if k == "com.dnsdock.alias" {
@@ -363,7 +406,7 @@ func overrideFromEnv(in *servers.Service, env map[string]string) (out *servers.S
 	var region string
 	for k, v := range env {
 		if k == "DNSDOCK_IGNORE" || k == "SERVICE_IGNORE" {
-			return nil
+			in.IgnoredByUser = true
 		}
 
 		if k == "DNSDOCK_ALIAS" {

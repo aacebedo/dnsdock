@@ -21,13 +21,16 @@ import (
 	"github.com/miekg/dns"
 )
 
+var ErrSvrsNotExist = errors.New("no such service")
+
 // Service represents a container and an attached DNS record
 type Service struct {
-	Name    string
-	Image   string
-	IPs     []net.IP
-	TTL     int
-	Aliases []string
+	Name          string
+	Image         string
+	IPs           []net.IP
+	TTL           int
+	Aliases       []string
+	IgnoredByUser bool
 
 	// Provider tracks the creator of a service
 	Provider string `json:"-"`
@@ -96,6 +99,10 @@ func (s *DNSServer) Stop() error {
 
 // AddService adds a new container and thus new DNS records
 func (s *DNSServer) AddService(id string, service Service) (err error) {
+	if service.IgnoredByUser {
+		return nil
+	}
+
 	if len(service.IPs) > 0 {
 		defer s.lock.Unlock()
 		s.lock.Lock()
@@ -131,7 +138,7 @@ func (s *DNSServer) RemoveService(id string) (err error) {
 		return err
 	}
 	if _, ok := s.services[id]; !ok {
-		return errors.New("No such service: " + id)
+		return ErrSvrsNotExist
 	}
 
 	for _, alias := range s.services[id].Aliases {
